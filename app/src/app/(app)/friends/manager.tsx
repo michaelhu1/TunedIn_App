@@ -1,0 +1,160 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
+import { HANDLE_PATTERN } from "@/lib/validation";
+
+export type FriendRow = {
+  status: "pending" | "accepted";
+  sent_by_me: boolean;
+  friend_id: string;
+  handle: string;
+  school: string;
+};
+
+// All friend actions go straight from the browser to the database. The row-level security
+// policies decide what is allowed: you can only send requests as yourself, only the person
+// you asked can accept, and either side can remove the friendship.
+export default function FriendsManager({ me, myHandle, rows }: { me: string; myHandle: string; rows: FriendRow[] }) {
+  const router = useRouter();
+  const supabase = createClient();
+  const [handle, setHandle] = useState("");
+  const [message, setMessage] = useState<{ kind: "ok" | "error"; text: string } | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const incoming = rows.filter((r) => r.status === "pending" && !r.sent_by_me);
+  const outgoing = rows.filter((r) => r.status === "pending" && r.sent_by_me);
+  const friends = rows.filter((r) => r.status === "accepted");
+
+  async function run(action: () => Promise<string | null>, okText?: string) {
+    setBusy(true);
+    setMessage(null);
+    const problem = await action();
+    setBusy(false);
+    if (problem) setMessage({ kind: "error", text: problem });
+    else if (okText) setMessage({ kind: "ok", text: okText });
+    router.refresh();
+  }
+
+  const add = () =>
+    run(async () => {
+      const wanted = handle.trim().toLowerCase().replace(/^@/, "");
+      if (!HANDLE_PATTERN.test(wanted)) return "Enter a handle, like @maya.";
+      if (wanted === myHandle) return "That is you.";
+      const { data: target } = await supabase.from("profiles").select("id").eq("handle", wanted).maybeSingle();
+      if (!target) return `Nobody here is called @${wanted} yet.`;
+      const { error } = await supabase.from("friendships").insert({ requester_id: me, addressee_id: target.id });
+      // 23505 = a row for this pair already exists, in either direction.
+      if (error?.code === "23505") return "You are already friends, or a request is waiting.";
+      if (error) return "Could not send the request. Try again.";
+      setHandle("");
+      return null;
+    }, "Request sent.");
+
+  const accept = (friendId: string) =>
+    run(async () => {
+      const { error } = await supabase
+        .from("friendships")
+        .update({ status: "accepted", accepted_at: new Date().toISOString() })
+        .eq("requester_id", friendId)
+        .eq("addressee_id", me);
+      return error ? "Could not accept. Try again." : null;
+    });
+
+  // Decline, cancel and unfriend are all the same thing: delete the row for this pair.
+  const remove = (friendId: string) =>
+    run(async () => {
+      const { error } = await supabase
+        .from("friendships")
+        .delete()
+        .or(`and(requester_id.eq.${me},addressee_id.eq.${friendId}),and(requester_id.eq.${friendId},addressee_id.eq.${me})`);
+      return error ? "Could not update. Try again." : null;
+    });
+
+  return (
+    <div className="flex flex-col gap-7">
+      <form
+        className="flex flex-col gap-2"
+        onSubmit={(e) => {
+          e.preventDefault();
+          add();
+        }}
+      >
+        <label htmlFor="add-friend" className="text-sm opacity-80">Add a friend by handle</label>
+        <div className="flex gap-2">
+          <input
+            id="add-friend"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
+            placeholder="@handle"
+            value={handle}
+            onChange={(e) => setHandle(e.target.value)}
+            className="field min-w-0 flex-1"
+          />
+          <button type="submit" disabled={busy || !handle.trim()} className="btn px-4">Add</button>
+        </div>
+        <p className="text-xs opacity-60">Your handle is @{myHandle}. Friends can add you with it.</p>
+        {message && (
+          <p role={message.kind === "error" ? "alert" : "status"} className={`text-sm ${message.kind === "error" ? "text-red-500" : "opacity-80"}`}>
+            {message.text}
+          </p>
+        )}
+      </form>
+
+      {incoming.length > 0 && (
+        <Section title="Requests">
+          {incoming.map((r) => (
+            <Row key={r.friend_id} row={r}>
+              <button disabled={busy} onClick={() => accept(r.friend_id)} className="btn px-3 py-1.5 text-sm">Accept</button>
+              <button disabled={busy} onClick={() => remove(r.friend_id)} className="text-sm underline opacity-70">Decline</button>
+            </Row>
+          ))}
+        </Section>
+      )}
+
+      <Section title={`Friends (${friends.length})`}>
+        {friends.length === 0 && (
+          <p className="text-sm opacity-60">No friends yet. Add someone above, and the map fills in as they check in.</p>
+        )}
+        {friends.map((r) => (
+          <Row key={r.friend_id} row={r}>
+            <button disabled={busy} onClick={() => remove(r.friend_id)} className="text-sm underline opacity-60">Remove</button>
+          </Row>
+        ))}
+      </Section>
+
+      {outgoing.length > 0 && (
+        <Section title="Waiting for them">
+          {outgoing.map((r) => (
+            <Row key={r.friend_id} row={r}>
+              <button disabled={busy} onClick={() => remove(r.friend_id)} className="text-sm underline opacity-60">Cancel</button>
+            </Row>
+          ))}
+        </Section>
+      )}
+    </div>
+  );
+}
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <section>
+      <h2 className="mb-2 text-xs uppercase tracking-wide opacity-60">{title}</h2>
+      <ul className="flex flex-col">{children}</ul>
+    </section>
+  );
+}
+
+function Row({ row, children }: { row: FriendRow; children: React.ReactNode }) {
+  return (
+    <li className="flex items-center gap-3 py-2">
+      <p className="min-w-0 flex-1 truncate">
+        <span className="font-medium">@{row.handle}</span>
+        <span className="opacity-60"> · {row.school}</span>
+      </p>
+      {children}
+    </li>
+  );
+}

@@ -1,15 +1,15 @@
-'use client';
+import Link from "next/link";
 
 export default function Home() {
   return (
-    <main className="flex flex-col items-center justify-center h-screen">
-      <h1 className="text-3xl font-bold mb-6">Welcome to TunedIn 🎵</h1>
-      <a
-        href="/api/login"
-        className="bg-green-600 text-white px-6 py-3 rounded hover:bg-green-700 transition"
-      >
-        Log in with Spotify
-      </a>
+    <main className="flex min-h-screen flex-col items-center justify-center gap-4 px-6 text-center">
+      <h1 className="text-4xl font-bold">TunedIn</h1>
+      <p className="max-w-md text-lg opacity-80">
+        See what your friends nearby are listening to right now, and what NYU has on repeat.
+      </p>
+      <Link href="/login" className="btn mt-2 px-6">
+        Join with your NYU email
+      </Link>
     </main>
   );
 }

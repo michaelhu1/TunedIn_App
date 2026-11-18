@@ -22,5 +22,14 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+}
+
+@layer components {
+  .field {
+    @apply rounded-lg border border-foreground/20 bg-transparent px-3 py-3 text-base outline-none focus-within:border-foreground/60 focus:border-foreground/60;
+  }
+  .btn {
+    @apply rounded-lg bg-foreground py-3 text-center font-semibold text-background transition disabled:opacity-50;
+  }
 }
