@@ -51,6 +51,9 @@ so listening comes from manual check-in and Last.fm today; adding another source
 The full reasoning, alternatives considered, and build order are in
 [docs/PROPOSAL.md](docs/PROPOSAL.md).
 
+Built with AI assistance; the product and design decisions are mine, and they are documented
+in the proposal.
+
 ## Stack
 
 | Layer | Choice | Why |
