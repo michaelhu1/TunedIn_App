@@ -66,11 +66,10 @@ function flag(code: string): string {
   return String.fromCodePoint(...[...code].map((c) => 0x1f1e6 + c.charCodeAt(0) - 65));
 }
 
-function codeFor(part: string, raw: string): string | null {
-  // "NY" in capitals is a state; "ny" inside a longer word is not looked at.
-  if (/^[A-Z]{2}$/.test(raw) && US_STATES[raw]) return "US";
+// A place or country we know by name. "Georgia" alone is read as the US state: at NYU that
+// is far more often right.
+function namedCode(part: string): string | null {
   if (PLACES[part]) return PLACES[part];
-  // "Georgia" alone is read as the US state: at NYU that is far more often right.
   if (US_STATE_NAMES.has(part)) return "US";
   return countries().get(part) ?? null;
 }
@@ -79,20 +78,24 @@ function codeFor(part: string, raw: string): string | null {
 export function flagForHometown(hometown: string | null | undefined): string | null {
   if (!hometown) return null;
   const parts = hometown.split(/[,/]/).map((p) => p.trim()).filter(Boolean);
-  // The last part is usually the state or country, so it gets the first say.
+  // Names first, the last part (usually the state or country) before the city. Only when no
+  // part is a known name does a two-letter code count as a US state: "Queens, NY" is the US,
+  // but "Mumbai, IN" is India, not Indiana, because Mumbai is known.
   for (const raw of [...parts].reverse()) {
-    const code = codeFor(raw.toLowerCase().replace(/\.$/, ""), raw);
+    const code = namedCode(raw.toLowerCase().replace(/\.$/, ""));
     if (code) return flag(code);
   }
+  const last = parts[parts.length - 1];
+  if (parts.length > 1 && /^[A-Z]{2}$/.test(last) && US_STATES[last]) return flag("US");
   return null;
 }
 
 // First match wins, so the specific subjects sit above the general ones.
 const MAJORS: [RegExp, string][] = [
+  [/drama|theat(er|re)|acting/, "🎭"],
   [/music tech|recorded music|music business|audio|sound/, "🎧"],
   [/music|composition|vocal|jazz|piano/, "🎵"],
   [/film|cinema|television|\btv\b/, "🎬"],
-  [/drama|theat(er|re)|acting/, "🎭"],
   [/danc/, "💃"],
   [/photo/, "📷"],
   [/game/, "🎮"],
@@ -107,8 +110,8 @@ const MAJORS: [RegExp, string][] = [
   [/neuro|psych|cognitive/, "🧠"],
   [/bio|genetic/, "🧬"],
   [/environment|sustainab|earth|climate/, "🌱"],
-  [/econ/, "📈"],
-  [/financ|account|business|stern|marketing|management/, "💼"],
+  [/\becon/, "📈"],
+  [/financ|account|business|\bstern\b|marketing|management/, "💼"],
   [/law|legal|pre-?law/, "⚖️"],
   [/politic|government|international relations|public policy/, "🏛️"],
   [/journal|media|communicat/, "📰"],

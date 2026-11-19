@@ -15,6 +15,7 @@ export type FriendRow = {
   handle: string;
   school: string;
   avatar_url?: string | null;
+  display_name?: string | null;
 };
 
 // All friend actions go straight from the browser to the database. The row-level security
@@ -36,7 +37,7 @@ export default function FriendsManager({ me, myHandle, rows }: { me: string; myH
   const [search, setSearch] = useState("");
   const allFriends = rows.filter((r) => r.status === "accepted");
   const needle = search.trim().toLowerCase().replace(/^@/, "");
-  const friends = needle ? allFriends.filter((r) => r.handle.includes(needle)) : allFriends;
+  const friends = needle ? allFriends.filter((r) => r.handle.includes(needle) || (r.display_name ?? "").toLowerCase().includes(needle)) : allFriends;
 
   async function run(action: () => Promise<string | null>, okText?: string) {
     setBusy(true);
@@ -129,7 +130,7 @@ export default function FriendsManager({ me, myHandle, rows }: { me: string; myH
         )}
       </form>
 
-      <Section title={`Your people (${allFriends.length})`}>
+      <Section title={`Friends (${allFriends.length})`}>
         {allFriends.length === 0 && (
           <p className="text-sm opacity-60">No friends yet. Add someone above and their music shows up on Home and the map.</p>
         )}
@@ -204,8 +205,8 @@ function Row({ row, children }: { row: FriendRow; children: React.ReactNode }) {
         <Avatar handle={row.handle} src={row.avatar_url} size={36} />
       </Link>
       <p className="min-w-0 flex-1 truncate">
-        <Link href={"/u/" + row.handle} className="font-medium hover:underline">@{row.handle}</Link>
-        <span className="opacity-60"> · {row.school}</span>
+        <Link href={"/u/" + row.handle} className="font-medium hover:underline">{row.display_name ?? `@${row.handle}`}</Link>
+        <span className="opacity-60">{row.display_name ? ` · @${row.handle}` : ""} · {row.school}</span>
       </p>
       {children}
     </li>

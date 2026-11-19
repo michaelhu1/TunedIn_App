@@ -13,11 +13,17 @@ describe("flagForHometown", () => {
     ["London, UK", "🇬🇧"],
     ["Toronto, Canada", "🇨🇦"],
     ["Los Angeles, CA", "🇺🇸"],
+    ["Mumbai, IN", "🇮🇳"],
+    ["Berlin, DE", "🇩🇪"],
+    ["Bogotá, CO", "🇨🇴"],
+    ["Tel Aviv, IL", "🇮🇱"],
+    ["Springfield, IL", "🇺🇸"],
   ])("%s", (input, expected) => expect(flagForHometown(input)).toBe(expected));
 
   it("shows nothing when unsure", () => {
     expect(flagForHometown("the internet")).toBeNull();
     expect(flagForHometown("in a van")).toBeNull();
+    expect(flagForHometown("OK")).toBeNull();
     expect(flagForHometown(null)).toBeNull();
   });
 });
@@ -32,10 +38,13 @@ describe("emojiForMajor", () => {
     ["Finance", "💼"],
     ["Biology", "🧬"],
     ["Psychology", "🧠"],
+    ["Musical Theatre", "🎭"],
+    ["Secondary Education", "🍎"],
   ])("%s", (input, expected) => expect(emojiForMajor(input)).toBe(expected));
 
   it("shows nothing when nothing fits", () => {
     expect(emojiForMajor("Vibes")).toBeNull();
+    expect(emojiForMajor("Middle Eastern Studies")).toBeNull();
     expect(emojiForMajor(null)).toBeNull();
   });
 });

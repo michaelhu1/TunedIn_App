@@ -9,7 +9,7 @@ const TABS: { href: string; label: string; also?: string[] }[] = [
   { href: "/home", label: "Home", also: ["/discover", "/friends", "/u", "/checkin", "/connect"] },
   { href: "/map", label: "Map" },
   { href: "/charts", label: "Charts" },
-  { href: "/me", label: "Me" },
+  { href: "/me", label: "Me", also: ["/settings"] },
 ];
 
 export default function TabBar({ pendingRequests = 0 }: { pendingRequests?: number }) {

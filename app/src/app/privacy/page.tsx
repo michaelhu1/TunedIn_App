@@ -55,8 +55,8 @@ export default function PrivacyPage() {
           list, unless you are in ghost mode. And anonymous totals for busy areas on the public map, such as
           &quot;12 listening around Washington Square&quot;, which never say who.
         </Item>
-        <Item name="Your friends">The song you are playing today, your zone on the map if you share location, and when the two of you played the same song on the same day. A “felt this” is seen only by the friend you send it to.</Item>
-        <Item name="Only you">Your full listening history and stats, your email and your settings.</Item>
+        <Item name="Your friends">The song you are playing today, your zone on the map if you share location, and when the two of you played the same song on the same day. Friends also get a friends chart and leaderboard: which songs you played this week and how many, unless you hide your stats in Edit profile or turn on ghost mode. A “felt this” is seen only by the friend you send it to.</Item>
+        <Item name="Only you">Your full listening history, your email and your settings.</Item>
         <Item name="The person running TunedIn">
           Can see the database in order to run the service and review reports. Reports are never shown to the
           person reported.
@@ -78,7 +78,7 @@ export default function PrivacyPage() {
           Your data is stored with Supabase (database, sign-in and photos) and the app is hosted on Vercel.
           Sign-in codes are sent by email. To show music we ask Last.fm for the public listening history of the
           username you give us, and Deezer, Apple&apos;s iTunes search and Spotify for song details, artwork and
-          links; those requests contain song names, not who you are. Map images load directly from
+          links; those requests contain song names, not who you are. When you add a playlist link, we ask that service (Spotify, YouTube and the like) for the playlist&apos;s cover picture, which tells it the playlist&apos;s address but not whose profile it is on. Map images load directly from
           OpenFreeMap, which, like any website, sees your device&apos;s internet address when it does.
         </p>
       </Section>

@@ -49,7 +49,8 @@ export default function MyListening({ stats, range }: { stats: MyStats; range: R
 
       {stats.totalPlays === 0 ? (
         <p className="text-sm opacity-60">
-          Nothing in this period yet. <Link href="/home" className="underline">Check in a song</Link> to start your history.
+          Nothing in this period yet. <Link href="/connect" className="underline">Connect Spotify through Last.fm</Link> or{" "}
+          <Link href="/checkin" className="underline">set a song by hand</Link> to start your history.
         </p>
       ) : (
         <>

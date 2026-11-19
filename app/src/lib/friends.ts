@@ -129,6 +129,8 @@ export async function getFriendsToday(supabase: SupabaseClient, meId: string): P
   const byId = new Map(friends.map((f) => [f.userId, f]));
   const dayAgo = new Date(Date.now() - 24 * 3600_000).toISOString();
   const today = new Date().toLocaleDateString("en-CA", { timeZone: "America/New_York" });
+  // The app's day runs 4am to 4am in New York, the same rule the database uses.
+  const listeningDay = new Date(Date.now() - 4 * 3600_000).toLocaleDateString("en-CA", { timeZone: "America/New_York" });
 
   const [same, overlap, concerts, received, sent] = await Promise.all([
     supabase.rpc("friend_same_songs_today"),
@@ -145,7 +147,7 @@ export async function getFriendsToday(supabase: SupabaseClient, meId: string): P
       .eq("receiver_id", meId)
       .gt("created_at", dayAgo)
       .order("created_at", { ascending: false }),
-    supabase.from("song_reactions").select("receiver_id, track_id").eq("sender_id", meId).gt("created_at", dayAgo),
+    supabase.from("song_reactions").select("receiver_id, track_id").eq("sender_id", meId).eq("day", listeningDay),
   ]);
 
   const overlapById = new Map(((overlap.data ?? []) as { friend_id: string; shared_artists: number }[]).map((o) => [o.friend_id, o.shared_artists]));
@@ -161,6 +163,8 @@ export async function getFriendsToday(supabase: SupabaseClient, meId: string): P
   for (const r of (received.data ?? []) as unknown as ReceivedRow[]) {
     const f = byId.get(r.sender_id);
     if (!f || !r.track) continue;
+    // The same friend and song can be stored twice either side of 4am; show it once.
+    if (moments.some((m) => m.key === `felt:${f.userId}:${r.track!.id}`)) continue;
     moments.push({
       kind: "felt",
       key: `felt:${f.userId}:${r.track.id}`,
@@ -190,7 +194,8 @@ export async function getFriendsToday(supabase: SupabaseClient, meId: string): P
   type ConcertRow = { user_id: string; artist: string; event_date: string | null };
   const byArtist = new Map<string, ConcertRow[]>();
   for (const c of (concerts.data ?? []) as ConcertRow[]) {
-    const k = c.artist.trim().toLowerCase();
+    // Artist and date together: two shows by the same artist are different concerts.
+    const k = `${c.artist.trim().toLowerCase()}|${c.event_date ?? ""}`;
     byArtist.set(k, [...(byArtist.get(k) ?? []), c]);
   }
   for (const [k, rows] of byArtist) {

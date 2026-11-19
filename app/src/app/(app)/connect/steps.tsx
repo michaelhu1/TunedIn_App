@@ -129,6 +129,10 @@ export default function ConnectSteps({
           itself, usually within a few minutes.
         </p>
         <p className="text-xs opacity-60">
+          Nothing after ten minutes? In Last.fm&apos;s privacy settings, make sure &quot;Hide recent listening
+          information&quot; is off. Settings in TunedIn shows whether your plays are coming through.
+        </p>
+        <p className="text-xs opacity-60">
           On Apple Music or another service? Last.fm lists apps that connect them under &quot;Track My
           Music&quot;.
         </p>

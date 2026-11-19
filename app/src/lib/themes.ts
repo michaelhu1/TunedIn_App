@@ -26,7 +26,7 @@ export type FontGroup = { id: string; name: string; vibe: string; display: strin
 export const DEFAULT_FONT = "clean";
 
 export const FONT_GROUPS: FontGroup[] = [
-  { id: "clean", name: "Clean", vibe: "Neutral and modern, the look so far", display: "Geist", text: "Geist" },
+  { id: "clean", name: "Clean", vibe: "Neutral and modern, the default", display: "Geist", text: "Geist" },
   { id: "zine", name: "Zine", vibe: "Indie magazine, liner notes", display: "Instrument Serif", text: "Instrument Sans" },
   { id: "literary", name: "Literary", vibe: "A book review; serif all the way through", display: "Instrument Serif", text: "Literata" },
   { id: "sleeve", name: "Sleeve", vibe: "Soft, heavy 70s record sleeve", display: "Fraunces", text: "Instrument Sans" },

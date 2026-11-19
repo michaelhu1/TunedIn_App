@@ -11,7 +11,7 @@ import PreviewButton from "@/components/preview-button";
 //                  song, friends are going to the same concert
 //   On now         friends listening in the last 30 minutes (five, then "show more")
 //   Earlier today  a strip of faces that scrolls sideways, so twenty friends take one row
-//   Quiet today    a single line; nobody gets a row for doing nothing
+//   Everyone else  a single line with a count; nobody is named for not listening
 // Inside each group, friends whose listening overlaps most with yours come first.
 
 const ON_NOW_SHOWN = 5;
@@ -65,7 +65,7 @@ function MomentCard({ moment, data }: { moment: Moment; data: FriendsToday }) {
       <p className="min-w-0 flex-1 text-sm">
         {moment.kind === "felt" ? (
           <>
-            <span className="font-semibold">{friend.name}</span> felt your <span className="font-semibold">{track.title}</span>
+            <span className="font-semibold">{friend.name}</span> felt your song <span className="font-semibold">{track.title}</span>
           </>
         ) : (
           <>
@@ -128,6 +128,7 @@ export default function FriendsTodaySections({ data }: { data: FriendsToday }) {
           <Label>
             <span className="text-live" aria-hidden>● </span>On now
           </Label>
+          <p className="-mt-1 mb-1 text-xs opacity-70">Tap “Felt this” to tell a friend their song landed. Only they see it.</p>
           <ul className="flex flex-col">
             {onNow.slice(0, ON_NOW_SHOWN).map((f) => (
               <NowRow key={f.userId} f={f} felt={felt(f)} />
@@ -185,10 +186,12 @@ export default function FriendsTodaySections({ data }: { data: FriendsToday }) {
               </span>
             ))}
           </span>
+          {/* A count, never names: nobody is singled out for not listening, and a friend
+              in ghost mode is not falsely described. */}
           <span className="min-w-0 flex-1 opacity-70">
             {nobodyToday
-              ? `No songs from your friends yet today. ${quiet.length === 1 ? "They" : "All " + quiet.length} will show up here when they play something.`
-              : `${namesLine(quiet.map((f) => f.displayName ?? `@${f.handle}`))} ${quiet.length === 1 ? "has" : "have"} not played anything yet today`}
+              ? "No songs from your friends yet today. They show up here when they play something."
+              : `${quiet.length} more friend${quiet.length === 1 ? "" : "s"} · see everyone`}
           </span>
         </Link>
       )}
