@@ -11,7 +11,7 @@
  *   live                      the "listening now" dot
  *   danger                    errors and destructive actions
  *
- * The theme is chosen in the app (Me, Appearance) and stored on the device; it sets
+ * The theme is chosen in the app (Settings) and stored on the device; it sets
  * data-theme on <html>. With no choice made, the app follows the phone's light or dark
  * setting. All themes were checked for WCAG contrast: text at least 7:1, faded text and
  * button labels at least 4.5:1.
@@ -136,14 +136,15 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-live: var(--live);
   --color-danger: var(--danger);
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-text);
   --font-mono: var(--font-geist-mono);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  font-family: var(--font-text);
+  font-weight: var(--text-weight);
 }
 
 @layer components {
@@ -155,22 +156,117 @@ body {
   }
 }
 
-/* Heading typeface (Me, Appearance). Only page titles and names change: the two typefaces
- * on trial are display faces that turn thin and hard to read at the small sizes used for
- * song lists, labels and numbers, and they have no Korean, Japanese or Chinese characters,
- * so everything that can contain a song or artist name stays in the regular sans. */
-:root[data-font="instrument"] h1 {
-  font-family: var(--font-instrument), "Hiragino Mincho ProN", "Songti SC", serif;
-  /* This typeface has a single weight; do not let the browser fake a bold. */
-  font-weight: 400;
-  font-synthesis: none;
-  font-size: 1.2em;
-  line-height: 1.1;
-  letter-spacing: -0.01em;
+/* Font groups (Settings).
+ *
+ * A group restyles the whole app with two typefaces: a display face for page titles and
+ * names (every h1, plus anything given the class "display") and a text face for everything
+ * else. The text faces were all chosen to stay readable at 12-14px and to have even-width
+ * digits for chart columns; the expressive faces are kept to the display slot. Song and
+ * artist names in Korean, Japanese or Chinese fall back to the phone's own font.
+ *
+ * The same variables can be set on any element with data-font-preview, which is how the
+ * picker shows each group in its own typefaces.
+ */
+:root {
+  --sys: system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-text: var(--font-geist-sans), var(--sys);
+  --font-display: var(--font-text);
+  --font-label: var(--font-text);
+  --text-weight: 400;
+  --display-weight: 700;
+  --display-tracking: 0em;
+  --display-scale: 1;
+  --display-transform: none;
+  --display-settings: normal;
+  --label-tracking: 0.025em;
 }
-:root[data-font="playfair"] h1 {
-  font-family: var(--font-playfair), "Hiragino Mincho ProN", "Songti SC", serif;
-  font-weight: 700;
-  font-variant-numeric: lining-nums;
-  letter-spacing: -0.01em;
+
+:root[data-font="zine"], [data-font-preview="zine"] {
+  --font-text: var(--font-instrument-sans), var(--sys);
+  --font-display: var(--font-instrument), "Hiragino Mincho ProN", "Songti SC", serif;
+  --display-weight: 400;
+  --display-tracking: -0.01em;
+  --display-scale: 1.18;
+  --label-tracking: 0.1em;
+}
+:root[data-font="literary"], [data-font-preview="literary"] {
+  --font-text: var(--font-literata), "Hiragino Mincho ProN", "Songti SC", Georgia, serif;
+  --font-display: var(--font-instrument), "Hiragino Mincho ProN", "Songti SC", serif;
+  --display-weight: 400;
+  --display-tracking: -0.01em;
+  --display-scale: 1.18;
+  --label-tracking: 0.06em;
+}
+:root[data-font="sleeve"], [data-font-preview="sleeve"] {
+  --font-text: var(--font-instrument-sans), var(--sys);
+  --font-display: var(--font-fraunces), Georgia, serif;
+  --display-weight: 800;
+  --display-tracking: -0.02em;
+  --display-settings: "SOFT" 100;
+}
+:root[data-font="rotation"], [data-font-preview="rotation"] {
+  --font-text: var(--font-archivo), var(--sys);
+  --font-display: var(--font-anton), Impact, var(--sys);
+  --display-weight: 400;
+  --display-tracking: 0.01em;
+  --display-transform: uppercase;
+  --label-tracking: 0.1em;
+}
+:root[data-font="warehouse"], [data-font-preview="warehouse"] {
+  --font-display: var(--font-unbounded), var(--sys);
+  --font-label: var(--font-unbounded), var(--sys);
+  --display-weight: 700;
+  --display-tracking: -0.02em;
+  --display-scale: 0.84;
+  --label-tracking: 0.06em;
+}
+:root[data-font="bedroom"], [data-font-preview="bedroom"] {
+  --font-text: var(--font-figtree), var(--sys);
+  --font-display: var(--font-bricolage), var(--sys);
+  --display-weight: 800;
+  --display-tracking: -0.03em;
+  --label-tracking: 0.08em;
+}
+:root[data-font="terminal"], [data-font-preview="terminal"] {
+  --font-display: var(--font-geist-mono), ui-monospace, monospace;
+  --font-label: var(--font-geist-mono), ui-monospace, monospace;
+  --display-weight: 500;
+  --display-tracking: -0.03em;
+  --display-scale: 0.9;
+  --label-tracking: 0.06em;
+}
+:root[data-font="soft"], [data-font-preview="soft"] {
+  --font-text: var(--font-nunito), var(--sys);
+  --font-display: var(--font-fredoka), var(--sys);
+  /* Nunito is thin at regular weight on dark backgrounds. */
+  --text-weight: 500;
+  --display-weight: 600;
+}
+
+[data-font-preview] {
+  font-family: var(--font-text);
+  font-weight: var(--text-weight);
+}
+
+h1,
+.display {
+  font-family: var(--font-display);
+  font-weight: var(--display-weight);
+  letter-spacing: var(--display-tracking);
+  text-transform: var(--display-transform);
+  font-variation-settings: var(--display-settings);
+  /* Several display faces have one weight; never let the browser fake a bold. */
+  font-synthesis: none;
+  /* Some display faces run small or wide, so the heading sizes are corrected per group. */
+  --text-lg: calc(1.125rem * var(--display-scale));
+  --text-xl: calc(1.25rem * var(--display-scale));
+  --text-2xl: calc(1.5rem * var(--display-scale));
+  --text-3xl: calc(1.875rem * var(--display-scale));
+  --text-4xl: calc(2.25rem * var(--display-scale));
+}
+
+/* The small capital section labels ("PRIVACY", "TOP SONGS"). */
+h2.uppercase {
+  font-family: var(--font-label);
+  letter-spacing: var(--label-tracking);
 }

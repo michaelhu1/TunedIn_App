@@ -61,7 +61,7 @@ export default function MyListening({ stats, range }: { stats: MyStats; range: R
               [stats.activeDays, "days"],
             ].map(([n, label]) => (
               <div key={label} className="rounded-xl border border-foreground/15 py-3">
-                <dd className="text-xl font-bold tabular-nums">{n}</dd>
+                <dd className="display text-xl tabular-nums">{n}</dd>
                 <dt className="text-xs opacity-60">{label}</dt>
               </div>
             ))}

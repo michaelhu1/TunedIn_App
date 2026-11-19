@@ -1,20 +1,20 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { FONT_KEY, FONTS, THEME_KEY, THEMES } from "@/lib/themes";
+import { DEFAULT_FONT, FONT_GROUPS, FONT_KEY, THEME_KEY, THEMES } from "@/lib/themes";
 
-// Appearance: colour theme and heading typeface. Both are remembered on this device only
+// Appearance: colour theme and font group. Both are remembered on this device only
 // (nothing is sent to the server) and applied by setting an attribute on <html>, which the
 // stylesheet reacts to. A tiny script in the page head applies the saved choice before the
 // first paint, so there is no flash of the wrong colours on load.
 export default function AppearanceSettings() {
   // null = "Match my phone": no saved choice, follow the device's light or dark setting.
   const [theme, setTheme] = useState<string | null>(null);
-  const [font, setFont] = useState<string>("sans");
+  const [font, setFont] = useState<string>(DEFAULT_FONT);
 
   useEffect(() => {
     setTheme(document.documentElement.dataset.theme ?? null);
-    setFont(document.documentElement.dataset.font ?? "sans");
+    setFont(document.documentElement.dataset.font ?? DEFAULT_FONT);
   }, []);
 
   function chooseTheme(id: string | null) {
@@ -32,7 +32,7 @@ export default function AppearanceSettings() {
     try {
       window.localStorage.setItem(FONT_KEY, id);
     } catch {}
-    if (id === "sans") delete document.documentElement.dataset.font;
+    if (id === DEFAULT_FONT) delete document.documentElement.dataset.font;
     else document.documentElement.dataset.font = id;
   }
 
@@ -49,15 +49,28 @@ export default function AppearanceSettings() {
       </fieldset>
 
       <fieldset>
-        <legend className="mb-2 text-sm font-medium">Headings</legend>
+        <legend className="mb-1 text-sm font-medium">Fonts</legend>
+        <p className="mb-2 text-xs opacity-70">Each one changes the whole app. The sample shows a title and a song row in that look.</p>
         <div className="flex flex-col gap-2">
-          {FONTS.map((f) => (
-            <label key={f.id} className="flex cursor-pointer items-center gap-3 rounded-lg border border-foreground/15 px-3 py-2 has-checked:border-accent">
-              <input type="radio" name="heading-font" checked={font === f.id} onChange={() => chooseFont(f.id)} className="accent-current" />
-              <span className="text-sm">
-                <span className="font-medium">{f.name}</span>
-                <span className="opacity-60"> · {f.note}</span>
+          {FONT_GROUPS.map((g) => (
+            <label
+              key={g.id}
+              data-font-preview={g.id}
+              className="flex cursor-pointer items-center gap-3 rounded-xl border border-foreground/15 px-3 py-2.5 has-checked:border-accent has-checked:ring-2 has-checked:ring-accent"
+            >
+              <input type="radio" name="font-group" checked={font === g.id} onChange={() => chooseFont(g.id)} className="sr-only" />
+              <span className="min-w-0 flex-1">
+                <span className="display block truncate text-2xl leading-tight">{g.name}</span>
+                <span className="block truncate text-sm">
+                  Espresso <span className="opacity-70">· Sabrina Carpenter · 32 listeners</span>
+                </span>
+                <span className="mt-0.5 block truncate text-xs opacity-70">{g.vibe}</span>
               </span>
+              {font === g.id ? (
+                <span aria-hidden className="text-sm font-semibold text-accent">
+                  ✓
+                </span>
+              ) : null}
             </label>
           ))}
         </div>
