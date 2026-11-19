@@ -19,6 +19,7 @@ import {
   Playlists,
   Prompt,
   TasteMatchCard,
+  FavoriteArtists,
   TheirSound,
   TopArtists,
   TopSongs,
@@ -48,10 +49,14 @@ export default async function ProfilePage({ params }: Props) {
 
   const isOwner = profile.id === viewer.id;
   // One extra query either way: friendship for a visitor, ghost mode for the owner.
-  const [friendState, ghostMode] = await Promise.all([
+  const [friendState, ghostMode, { data: mine }] = await Promise.all([
     isOwner ? null : getFriendState(supabase, profile.id),
     isOwner ? getOwnGhostMode(supabase, viewer.id) : false,
+    supabase.from("profiles").select("favorite_artists").eq("id", viewer.id).maybeSingle(),
   ]);
+  // Favourite artists the viewer and this person both picked: a ready-made thing to talk about.
+  const myArtists = new Set(((mine?.favorite_artists ?? []) as string[]).map((a) => a.toLowerCase()));
+  const sharedArtists = isOwner ? [] : profile.favoriteArtists.filter((a) => myArtists.has(a.toLowerCase()));
 
   const hasStats = profile.topTracks.length > 0 || profile.topArtists.length > 0;
   // Raw fields on purpose: if any of these is set, the person has started their profile,
@@ -67,6 +72,7 @@ export default async function ProfilePage({ params }: Props) {
     !profile.instagram &&
     !profile.studentStatus &&
     !profile.prompt &&
+    profile.favoriteArtists.length === 0 &&
     profile.genres.length === 0 &&
     profile.openTo.length === 0 &&
     profile.musicRoles.length === 0 &&
@@ -121,6 +127,7 @@ export default async function ProfilePage({ params }: Props) {
       {profile.favorites.length > 0 && <Favorites favorites={profile.favorites} />}
       {profile.links.length > 0 && <Playlists links={profile.links} />}
       {/* These render nothing when there is nothing (known) to show. */}
+      <FavoriteArtists artists={profile.favoriteArtists} sharedWithViewer={sharedArtists} />
       <TheirSound genres={profile.genres} roles={profile.musicRoles} note={profile.musicNote} />
       <Concerts concerts={profile.concerts} isOwner={isOwner} />
       <Instagram handle={profile.instagram} />

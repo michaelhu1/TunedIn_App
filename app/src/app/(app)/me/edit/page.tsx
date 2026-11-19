@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireProfile } from "@/lib/auth";
 import { BIO_MAX, DISPLAY_NAME_MAX, getFullProfile, LINK_HOSTS, MAX_FAVORITES, MAX_LINKS } from "@/lib/profile";
+import { getPopularArtists } from "@/lib/sources/artists";
 import { createClient } from "@/lib/supabase/server";
 import ProfileEditor from "@/components/profile-editor/profile-editor";
 
@@ -9,9 +10,10 @@ export default async function EditProfilePage() {
   const me = await requireProfile();
   const supabase = await createClient();
 
-  const [profile, { data: own }] = await Promise.all([
+  const [profile, { data: own }, popularArtists] = await Promise.all([
     getFullProfile(supabase, me.handle),
     supabase.from("profiles").select("university_id").eq("id", me.id).single(),
+    getPopularArtists(18),
   ]);
   // requireProfile just found this row, so this only happens in a race (account deleted).
   if (!profile || !own) notFound();
@@ -41,6 +43,7 @@ export default async function EditProfilePage() {
       <ProfileEditor
         profile={profile}
         schools={schools ?? []}
+        popularArtists={popularArtists}
         limits={{
           maxFavorites: MAX_FAVORITES,
           maxLinks: MAX_LINKS,

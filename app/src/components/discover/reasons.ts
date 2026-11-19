@@ -24,6 +24,8 @@ export type Suggestion = {
   shared_concert: string | null;
   both_new: boolean;
   same_school: boolean;
+  /** Favourite artists both people picked. Present once the favourite_artists migration is applied. */
+  shared_favorites?: string[];
 };
 
 /** The strongest reasons first, at most `max` of them, so a card stays scannable. */
@@ -34,6 +36,10 @@ export function reasonsFor(s: Suggestion, max = 3): string[] {
 
   const artists = (s.shared_artists ?? []).filter((a) => a.trim() !== "");
   if (artists.length > 0) reasons.push(`You both play ${joinNames(artists)}`);
+
+  // Shared favourites matter most for new accounts, which have no plays to compare yet.
+  const favorites = (s.shared_favorites ?? []).filter((a) => a.trim() !== "");
+  if (favorites.length > 0 && artists.length === 0) reasons.push(`You both like ${joinNames(favorites.slice(0, 3))}`);
 
   const openTo = labelsFor(s.shared_open_to ?? [], OPEN_TO).map((l) => l.toLowerCase());
   if (openTo.length > 0) reasons.push(`Both open to ${joinNames(openTo)}`);

@@ -5,6 +5,10 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { isUniversityEmail } from "@/lib/validation";
 
+// Set NEXT_PUBLIC_GOOGLE_SIGNIN=1 once the Google provider is switched on in Supabase.
+// Until then the button stays hidden, because pressing it would only show an error.
+const GOOGLE_SIGNIN = process.env.NEXT_PUBLIC_GOOGLE_SIGNIN === "1";
+
 export default function LoginPage() {
   const router = useRouter();
   const [step, setStep] = useState<"email" | "code">("email");
@@ -12,6 +16,33 @@ export default function LoginPage() {
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+
+  // Coming back from a failed Google sign-in: say what happened.
+  useEffect(() => {
+    const reason = new URLSearchParams(window.location.search).get("error");
+    if (reason === "not_nyu") setError("That Google account is not an NYU one. Pick your @nyu.edu account, or use an email code.");
+    else if (reason === "google") setError("Google sign-in did not finish. Try again, or use an email code.");
+  }, []);
+
+  // Google sign-in for NYU accounts: no code to wait for. `hd` asks Google to offer only
+  // nyu.edu accounts; the database still checks the domain, so it is a convenience, not the
+  // security.
+  async function signInWithGoogle() {
+    setError(null);
+    setBusy(true);
+    const { error } = await createClient().auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+        queryParams: { hd: "nyu.edu", prompt: "select_account" },
+      },
+    });
+    if (error) {
+      setBusy(false);
+      setError("Google sign-in is not available right now. Use an email code.");
+    }
+    // On success the browser leaves for Google, so there is nothing more to do here.
+  }
 
   // Remember the address on this device so signing back in is one tap plus the code.
   useEffect(() => {
@@ -72,6 +103,15 @@ export default function LoginPage() {
   return (
     <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center gap-6 px-6">
       <h1 className="text-3xl font-bold">TunedIn</h1>
+
+      {step === "email" && GOOGLE_SIGNIN && (
+        <>
+          <button type="button" onClick={signInWithGoogle} disabled={busy} className="btn">
+            Continue with your NYU Google account
+          </button>
+          <p className="-my-2 text-center text-xs opacity-50">or get a code by email</p>
+        </>
+      )}
 
       {step === "email" ? (
         <form onSubmit={sendCode} className="flex flex-col gap-3">
