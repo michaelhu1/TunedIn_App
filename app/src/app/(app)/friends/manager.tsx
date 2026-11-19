@@ -160,7 +160,7 @@ export default function FriendsManager({ me, myHandle, rows }: { me: string; myH
       <p className="text-sm opacity-60">
         To block or report someone, open their profile and scroll to the bottom. People you have blocked are
         listed under{" "}
-        <Link href="/me#blocked" className="underline">
+        <Link href="/settings#blocked" className="underline">
           Me
         </Link>
         .

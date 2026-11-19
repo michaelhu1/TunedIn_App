@@ -106,7 +106,7 @@ export default function SafetyMenu({ me, userId, handle }: { me: string; userId:
           <p className="font-semibold">Block @{handle}?</p>
           <p className="opacity-70">
             You will stop being friends, and neither of you will be able to find the other&apos;s profile, see each
-            other on the map or send friend requests. They are not told. You can undo this under Me.
+            other on the map or send friend requests. They are not told. You can undo this in Settings.
           </p>
           <div className="flex gap-3">
             <button type="button" disabled={busy} onClick={confirmBlock} className="btn bg-danger px-4 text-background">

@@ -289,7 +289,7 @@ export default function MapView({
       )}
 
       {ghostMode ? (
-        <Notice>Ghost mode is on. Friends cannot see you. Change it under Me.</Notice>
+        <Notice>Ghost mode is on. Friends cannot see you. Change it in Settings.</Notice>
       ) : !shareLocation ? (
         <LocationOptIn userId={myId} />
       ) : (

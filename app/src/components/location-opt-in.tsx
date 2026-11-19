@@ -25,7 +25,7 @@ export default function LocationOptIn({ userId }: { userId: string }) {
       <button onClick={turnOn} className="btn mt-3 block w-full">
         Share my rough location
       </button>
-      <p className="mt-2 text-xs opacity-60">You can turn it off, or stay out of the anonymous totals, under Me.</p>
+      <p className="mt-2 text-xs opacity-60">You can turn it off, or stay out of the anonymous totals, in Settings.</p>
     </div>
   );
 }

@@ -4,7 +4,7 @@ import { useState } from "react";
 
 // Shares a link. On phones this opens the normal share sheet (Messages, Instagram, ...);
 // elsewhere it copies the link.
-export default function ShareButton({ path, title, label = "Share" }: { path: string; title: string; label?: string }) {
+export default function ShareButton({ path, title, label = "Share", className }: { path: string; title: string; label?: string; className?: string }) {
   const [copied, setCopied] = useState(false);
 
   async function share() {
@@ -20,7 +20,7 @@ export default function ShareButton({ path, title, label = "Share" }: { path: st
   }
 
   return (
-    <button type="button" onClick={share} className="whitespace-nowrap rounded-full border border-foreground/20 px-4 py-1.5 text-sm font-semibold">
+    <button type="button" onClick={share} className={className ?? "whitespace-nowrap rounded-full border border-foreground/20 px-4 py-1.5 text-sm font-semibold"}>
       {copied ? "Link copied" : label}
     </button>
   );
