@@ -15,7 +15,8 @@ import {
   Favorites,
   InstagramButton,
   MakesMusicLine,
-  NowPlaying,
+  MatchBadge,
+  NowPlayingLine,
   Playlists,
   Prompt,
   TasteMatchCard,
@@ -117,19 +118,18 @@ export default async function ProfileScreen({
                 {profile.classYear && <> · Class of {profile.classYear}</>}
               </span>
               {status && <span className="rounded-full border border-foreground/20 px-2 py-0.5 text-xs">{status}</span>}
+              {profile.tasteMatch && <MatchBadge score={profile.tasteMatch.score} />}
             </p>
             {aboutLine && <p className="break-words text-sm opacity-70">{aboutLine}</p>}
             <MakesMusicLine roles={profile.musicRoles} note={profile.musicNote} />
           </div>
         </div>
+        {profile.nowPlaying && <NowPlayingLine track={profile.nowPlaying} />}
         {/* Plain text only; whitespace-pre-line keeps the owner's line breaks. */}
         {profile.bio && <p className="whitespace-pre-line break-words">{profile.bio}</p>}
         {/* Who they are, in one read: genres and what they are open to, before any buttons. */}
         <TasteTags genres={profile.genres} openTo={profile.openTo} />
       </header>
-
-      {/* What connects you two sits right above the button that acts on it. */}
-      {profile.tasteMatch && <TasteMatchCard match={profile.tasteMatch} />}
 
       {/* One row of actions: Edit and Share on your own profile, the friend button on anyone
           else's, with Instagram as a small button at the end. */}
@@ -158,7 +158,8 @@ export default async function ProfileScreen({
       {profile.favorites.length > 0 && <Favorites favorites={profile.favorites} />}
       {profile.links.length > 0 && <Playlists links={profile.links} />}
       {profile.prompt && <Prompt prompt={profile.prompt} />}
-      {profile.nowPlaying && <NowPlaying track={profile.nowPlaying} />}
+      {/* The match number is a badge by the name; this card is the explanation of it. */}
+      {profile.tasteMatch && <TasteMatchCard match={profile.tasteMatch} />}
       <FavoriteArtists artists={profile.favoriteArtists} sharedWithViewer={sharedArtists} />
       <Concerts concerts={profile.concerts} isOwner={isOwner} />
       {ownListening ?? (

@@ -21,7 +21,7 @@ function Heading({ children }: { children: React.ReactNode }) {
 export function TasteMatchCard({ match }: { match: TasteMatch }) {
   const shared = sharedArtistsSentence(match.sharedArtists, match.sharedCount);
   return (
-    <section aria-labelledby="taste-match-heading" className="rounded-xl border border-foreground/15 p-4">
+    <section aria-labelledby="taste-match-heading" className="scroll-mt-6 rounded-xl border border-foreground/15 p-4">
       <h2 id="taste-match-heading" className="mb-1 text-xs uppercase tracking-wide opacity-60">
         Your taste match
       </h2>
@@ -200,24 +200,36 @@ export function InstagramButton({ handle }: { handle: string | null }) {
   );
 }
 
-export function NowPlaying({ track }: { track: NonNullable<FullProfile["nowPlaying"]> }) {
+/** What they are playing, as one line in the header: status, not a section of its own. */
+export function NowPlayingLine({ track }: { track: NonNullable<FullProfile["nowPlaying"]> }) {
   // Server time at render. The page is rendered per request (it reads cookies), so this is fresh.
   const live = Date.now() - new Date(track.updatedAt).getTime() < LIVE_MINUTES * 60_000;
   return (
-    <section aria-label="Now playing" className="rounded-xl border border-foreground/15 p-4">
-      <p className="mb-2 text-xs uppercase tracking-wide opacity-60">
-        {live ? <><span className="text-live" aria-hidden>●</span> Live now</> : "Earlier today"}
+    <section aria-label="Now playing" className="flex items-center gap-2.5 rounded-full bg-surface py-1 pl-1 pr-1.5">
+      <Cover src={track.artworkUrl} size={32} className="rounded-full" />
+      <p className="min-w-0 flex-1 truncate text-sm">
+        {live ? (
+          <>
+            <span className="text-live" aria-hidden>● </span>
+            <span className="sr-only">Listening now: </span>
+          </>
+        ) : (
+          <span className="opacity-70">Earlier: </span>
+        )}
+        <span className="font-medium">{track.title}</span>
+        <span className="opacity-70"> · {track.artist}</span>
       </p>
-      <div className="flex items-center gap-3">
-        <Cover src={track.artworkUrl} size={56} />
-        <div className="min-w-0 flex-1">
-          <p className="truncate font-semibold">{track.title}</p>
-          <p className="truncate text-sm opacity-70">{track.artist}</p>
-        </div>
-        <PreviewButton trackId={track.trackId} />
-        <OpenInSpotify trackId={track.trackId} compact />
-      </div>
+      <PreviewButton trackId={track.trackId} className="scale-75" />
     </section>
+  );
+}
+
+/** The taste match as a small badge beside the name; the full card explains it lower down. */
+export function MatchBadge({ score }: { score: number }) {
+  return (
+    <a href="#taste-match-heading" className="shrink-0 rounded-full bg-accent px-2 py-0.5 text-xs font-semibold tabular-nums text-accent-foreground">
+      {score}% <span className="sr-only">taste </span>match
+    </a>
   );
 }
 
@@ -325,42 +337,62 @@ export function Playlists({ links }: { links: FullProfile["links"] }) {
   );
 }
 
-export function TopSongs({ tracks }: { tracks: FullProfile["topTracks"] }) {
+// The top lists are the wordiest part of a profile, so they open with three rows and keep
+// the rest behind "Show all" (a <details>, which needs no JavaScript).
+const TOP_SHOWN = 3;
+
+function TopList<T>({ title, items, row }: { title: string; items: T[]; row: (item: T, index: number) => React.ReactNode }) {
+  const rest = items.slice(TOP_SHOWN);
   return (
     <section>
-      <Heading>Top songs · last 90 days</Heading>
-      <ol className="flex flex-col">
-        {tracks.map((t, i) => (
-          <li key={t.trackId} className="flex items-center gap-3 py-2">
-            <span className="w-4 text-right text-sm tabular-nums opacity-60">{i + 1}</span>
-            <Cover src={t.artworkUrl} size={44} />
-            <div className="min-w-0 flex-1">
-              <p className="truncate font-medium">{t.title}</p>
-              <p className="truncate text-sm opacity-70">{t.artist} · {plural(t.plays, "play")}</p>
-            </div>
-            <PreviewButton trackId={t.trackId} />
-            <OpenInSpotify trackId={t.trackId} compact />
-          </li>
-        ))}
-      </ol>
+      <Heading>{title}</Heading>
+      <ol className="flex flex-col">{items.slice(0, TOP_SHOWN).map(row)}</ol>
+      {rest.length > 0 && (
+        <details className="group">
+          <summary className="cursor-pointer py-1 text-sm underline opacity-70 group-open:hidden">Show all {items.length}</summary>
+          <ol start={TOP_SHOWN + 1} className="flex flex-col">
+            {rest.map((item, i) => row(item, i + TOP_SHOWN))}
+          </ol>
+        </details>
+      )}
     </section>
+  );
+}
+
+export function TopSongs({ tracks }: { tracks: FullProfile["topTracks"] }) {
+  return (
+    <TopList
+      title="Top songs · last 90 days"
+      items={tracks}
+      row={(t, i) => (
+        <li key={t.trackId} className="flex items-center gap-3 py-2">
+          <span className="w-4 text-right text-sm tabular-nums opacity-60">{i + 1}</span>
+          <Cover src={t.artworkUrl} size={44} />
+          <div className="min-w-0 flex-1">
+            <p className="truncate font-medium">{t.title}</p>
+            <p className="truncate text-sm opacity-70">{t.artist} · {plural(t.plays, "play")}</p>
+          </div>
+          <PreviewButton trackId={t.trackId} />
+          <OpenInSpotify trackId={t.trackId} compact />
+        </li>
+      )}
+    />
   );
 }
 
 export function TopArtists({ artists }: { artists: FullProfile["topArtists"] }) {
   return (
-    <section>
-      <Heading>Top artists · last 90 days</Heading>
-      <ol className="flex flex-col">
-        {artists.map((a, i) => (
-          <li key={a.artist} className="flex items-center gap-3 py-2">
-            <span className="w-4 text-right text-sm tabular-nums opacity-60">{i + 1}</span>
-            <Cover src={a.artworkUrl} size={44} className="rounded-full" />
-            <p className="min-w-0 flex-1 truncate font-medium">{a.artist}</p>
-            <span className="whitespace-nowrap text-xs opacity-60">{plural(a.plays, "play")}</span>
-          </li>
-        ))}
-      </ol>
-    </section>
+    <TopList
+      title="Top artists · last 90 days"
+      items={artists}
+      row={(a, i) => (
+        <li key={a.artist} className="flex items-center gap-3 py-2">
+          <span className="w-4 text-right text-sm tabular-nums opacity-60">{i + 1}</span>
+          <Cover src={a.artworkUrl} size={44} className="rounded-full" />
+          <p className="min-w-0 flex-1 truncate font-medium">{a.artist}</p>
+          <span className="whitespace-nowrap text-xs opacity-60">{plural(a.plays, "play")}</span>
+        </li>
+      )}
+    />
   );
 }
