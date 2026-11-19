@@ -3,7 +3,6 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 // Your own listening, for the Me tab. Unlike the campus charts (which count each person
 // once per song per day), this counts every play: it is your history, so repeats matter.
-// Only plays that came from a streaming service count; songs set by hand do not.
 //
 // It reads your most recent plays (row-level security guarantees they are only yours) and
 // adds them up here. That is fine while histories are short. Once Autopilot users have
@@ -35,9 +34,6 @@ export async function getMyStats(supabase: SupabaseClient, userId: string, days:
     .from("plays")
     .select("played_at, track:tracks(id, title, artist, artwork_url)")
     .eq("user_id", userId)
-    // Streaming plays only. Songs set by hand are a status, not a listen (see the
-    // stats_streaming_only migration).
-    .eq("source", "lastfm")
     .order("played_at", { ascending: false })
     .limit(MAX_PLAYS);
   if (days) query = query.gte("played_at", new Date(Date.now() - days * 86_400_000).toISOString());

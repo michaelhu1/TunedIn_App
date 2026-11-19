@@ -45,7 +45,7 @@ export default async function ChartView({ school }: { school: string | null }) {
             {status.listeners} of {status.required} listeners
           </p>
           <p className="mt-1 text-sm opacity-70">
-            The {scopeName} chart unlocks when {status.required} different people have streamed music this week,
+            The {scopeName} chart unlocks when {status.required} different people have checked in this week,
             so a chart never describes just one or two people. Invite friends to open it up.
           </p>
         </section>
@@ -93,6 +93,7 @@ export default async function ChartView({ school }: { school: string | null }) {
                   <p className="min-w-0 flex-1 truncate">
                     <Link href={"/u/" + l.handle} className="font-medium hover:underline">@{l.handle}</Link>
                     <span className="opacity-60"> · {l.school}</span>
+                    {l.automatic && <span className="ml-2 rounded bg-foreground/10 px-1.5 py-0.5 text-xs">Autopilot</span>}
                   </p>
                   <span className="whitespace-nowrap text-xs opacity-60">{plural(l.points, "song")}</span>
                 </li>
@@ -133,8 +134,7 @@ export default async function ChartView({ school }: { school: string | null }) {
       )}
 
       <p className="text-xs opacity-50">
-        Charts count plays from streaming services. Each person counts once per song per day, however many times
-        they play it. Songs set by hand are not counted.
+        Each person counts once per song per day, however many times they play it.
       </p>
     </main>
   );

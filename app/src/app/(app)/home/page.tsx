@@ -69,8 +69,8 @@ export default async function HomePage() {
         </h1>
         {isNew && !connected && (
           <p className="mt-1 text-sm opacity-70">
-            Connect your music below and your plays count for {profile.school.short_name} on the NYU charts. Or tap
-            a song to show friends what you are playing.
+            Connect your music below, or tap a song to set it by hand. Either way it counts for{" "}
+            {profile.school.short_name} on the NYU charts.
           </p>
         )}
       </header>

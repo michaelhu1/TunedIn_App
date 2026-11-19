@@ -49,8 +49,7 @@ export default function MyListening({ stats, range }: { stats: MyStats; range: R
 
       {stats.totalPlays === 0 ? (
         <p className="text-sm opacity-60">
-          Nothing in this period yet. Stats come from what you stream:{" "}
-          <Link href="/connect" className="underline">connect your music</Link> and they fill in by themselves.
+          Nothing in this period yet. <Link href="/home" className="underline">Check in a song</Link> to start your history.
         </p>
       ) : (
         <>
@@ -119,7 +118,7 @@ export default function MyListening({ stats, range }: { stats: MyStats; range: R
           {stats.capped && <p className="text-xs opacity-50">Based on your most recent 1,000 plays.</p>}
         </>
       )}
-      <p className="text-xs opacity-50">Only you can see this. It counts every play from your streaming service, repeats included. Songs you set by hand are not counted.</p>
+      <p className="text-xs opacity-50">Only you can see this. Every play counts here, repeats included.</p>
     </section>
   );
 }

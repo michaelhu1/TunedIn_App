@@ -22,14 +22,14 @@ export default async function ConnectPage() {
         <p className="mt-2 text-sm opacity-70">
           TunedIn shows what you are already listening to on Spotify. It reads that through Last.fm, a free
           service that keeps a log of your plays. Set it up once, about two minutes, and you never have to
-          touch it again. Your plays then count toward the NYU charts, your stats and your taste matches.
+          touch it again.
         </p>
       </header>
 
       <ConnectSteps connectedAs={settings?.lastfm_username ?? null} />
 
       <Link href="/home" className="text-center text-sm underline opacity-70">
-        {settings?.lastfm_username ? "Done" : "Skip for now. I will set songs by hand (they will not count toward stats)."}
+        {settings?.lastfm_username ? "Done" : "Skip for now. I will set songs by hand."}
       </Link>
     </main>
   );
