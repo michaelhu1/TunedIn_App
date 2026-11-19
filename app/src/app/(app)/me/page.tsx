@@ -1,17 +1,26 @@
 import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { getMyStats } from "@/lib/my-stats";
 import LastfmConnect from "@/components/lastfm-connect";
+import MyListening, { RANGE_DAYS, type RangeKey } from "@/components/my-listening";
 import PrivacySettings from "@/components/privacy-settings";
 import SignOutButton from "@/components/sign-out-button";
 
-export default async function MePage() {
+export default async function MePage({ searchParams }: { searchParams: Promise<{ range?: string }> }) {
   const profile = await requireProfile();
   const supabase = await createClient();
-  const { data: settings } = await supabase
-    .from("user_settings")
-    .select("lastfm_username, share_location, ghost_mode")
-    .eq("user_id", profile.id)
-    .maybeSingle();
+
+  const wanted = (await searchParams).range;
+  const range: RangeKey = wanted === "month" || wanted === "all" ? wanted : "week";
+
+  const [{ data: settings }, stats] = await Promise.all([
+    supabase
+      .from("user_settings")
+      .select("lastfm_username, share_location, ghost_mode")
+      .eq("user_id", profile.id)
+      .maybeSingle(),
+    getMyStats(supabase, profile.id, RANGE_DAYS[range]),
+  ]);
 
   return (
     <main className="flex flex-col gap-8">
@@ -19,6 +28,8 @@ export default async function MePage() {
         <h1 className="text-3xl font-bold">@{profile.handle}</h1>
         <p className="mt-1 opacity-70">{profile.school.name}</p>
       </header>
+
+      <MyListening stats={stats} range={range} />
 
       <section>
         <h2 className="mb-3 text-xs uppercase tracking-wide opacity-60">Privacy</h2>
