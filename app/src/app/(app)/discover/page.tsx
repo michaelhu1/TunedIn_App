@@ -26,14 +26,9 @@ export default async function DiscoverPage() {
     <main className="flex flex-col gap-6">
       <header>
         <h1 className="text-2xl font-bold">People you might click with</h1>
-        <nav aria-label="People" className="mt-3 flex gap-2 text-sm">
-          <span aria-current="page" className="rounded-full border border-foreground bg-foreground px-3 py-1 text-background">
-            Discover
-          </span>
-          <Link href="/friends" className="rounded-full border border-foreground/20 px-3 py-1">
-            Your friends
-          </Link>
-        </nav>
+        <Link href="/people" className="mt-2 inline-block text-sm underline opacity-70">
+          ← Back to People
+        </Link>
       </header>
 
       {!iAmListed && (

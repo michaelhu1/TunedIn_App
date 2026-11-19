@@ -31,12 +31,7 @@ export default async function ChartView({ school }: { school: string | null }) {
     <main className="flex flex-col gap-7">
       <header>
         <h1 className="text-2xl font-bold">{scopeName} this week</h1>
-        <nav aria-label="Chart scope" className="-mx-5 mt-3 flex gap-2 overflow-x-auto px-5 pb-1 text-sm">
-          <ScopeLink href="/charts" label="NYU" active={!school} />
-          {schools.map((s) => (
-            <ScopeLink key={s.slug} href={`/charts/${s.slug}`} label={s.short_name} active={school === s.slug} mine={s.slug === profile.school.slug} />
-          ))}
-        </nav>
+        <ScopeNav schools={schools} active={school ?? "nyu"} mySchool={profile.school.slug} />
       </header>
 
       {!status.unlocked ? (
@@ -137,6 +132,27 @@ export default async function ChartView({ school }: { school: string | null }) {
         Each person counts once per song per day, however many times they play it.
       </p>
     </main>
+  );
+}
+
+/** The row of chart categories: NYU, Friends, then each school. Shared with the Friends chart. */
+export function ScopeNav({
+  schools,
+  active,
+  mySchool,
+}: {
+  schools: { slug: string; short_name: string }[];
+  active: string; // "nyu", "friends" or a school slug
+  mySchool: string;
+}) {
+  return (
+    <nav aria-label="Chart category" className="-mx-5 mt-3 flex gap-2 overflow-x-auto px-5 pb-1 text-sm">
+      <ScopeLink href="/charts" label="NYU" active={active === "nyu"} />
+      <ScopeLink href="/charts/friends" label="Friends" active={active === "friends"} />
+      {schools.map((s) => (
+        <ScopeLink key={s.slug} href={`/charts/${s.slug}`} label={s.short_name} active={active === s.slug} mine={s.slug === mySchool} />
+      ))}
+    </nav>
   );
 }
 

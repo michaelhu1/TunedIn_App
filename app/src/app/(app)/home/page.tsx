@@ -1,120 +1,138 @@
 import Link from "next/link";
-import AutopilotSync from "@/components/autopilot-sync";
 import { requireProfile } from "@/lib/auth";
-import { getTopTracks } from "@/lib/charts";
-import { getGlobalChart } from "@/lib/sources/deezer-chart";
+import { getChartStatus, getTopTracks } from "@/lib/charts";
+import { LIVE_MINUTES, getFriendsActivity, timeAgo } from "@/lib/friends";
 import { createClient } from "@/lib/supabase/server";
+import AutopilotSync from "@/components/autopilot-sync";
 import Cover from "@/components/cover";
+import FriendActivityList from "@/components/friend-activity-list";
 import OpenInSpotify from "@/components/open-in-spotify";
 import PreviewButton from "@/components/preview-button";
-import QuickPicks, { type Pick } from "@/components/quick-picks";
-
-const LIVE_MINUTES = 30;
 
 type TrackJoin = { id: string; title: string; artist: string; artwork_url: string | null };
 
-function ago(iso: string): string {
-  const mins = Math.max(1, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
-  return mins < 60 ? `${mins}m ago` : `${Math.round(mins / 60)}h ago`;
-}
-
+// Home answers the question the app exists for: what is everyone playing right now?
+//   1. You: your song today.
+//   2. Your friends: what each of them is on.
+//   3. Your campus: the top few songs at NYU this week.
+// TunedIn does not play music, so there is nothing here to browse or queue. Setting a song
+// by hand is one small link for people who have not connected a streaming service.
 export default async function HomePage() {
   const profile = await requireProfile();
   const supabase = await createClient();
 
-  const [presenceRes, recentRes, settingsRes, campus] = await Promise.all([
+  const [presenceRes, settingsRes, friends, campus, campusStatus] = await Promise.all([
     supabase
       .from("presence")
       .select("updated_at, track:tracks(id, title, artist, artwork_url)")
       .eq("user_id", profile.id)
       .gt("expires_at", new Date().toISOString())
       .maybeSingle(),
-    supabase
-      .from("plays")
-      .select("source, track:tracks(id, title, artist, artwork_url)")
-      .eq("user_id", profile.id)
-      .order("played_at", { ascending: false })
-      .limit(40),
     supabase.from("user_settings").select("lastfm_username").eq("user_id", profile.id).maybeSingle(),
-    getTopTracks(supabase, null, 7, 9),
+    getFriendsActivity(supabase, profile.id),
+    getTopTracks(supabase, null, 7, 5),
+    getChartStatus(supabase, null),
   ]);
 
   const presence = presenceRes.data as unknown as { updated_at: string; track: TrackJoin | null } | null;
-  const plays = (recentRes.data ?? []) as unknown as { source: string; track: TrackJoin | null }[];
-  const isNew = plays.length === 0;
-
-  // Your last few different songs, newest first.
-  const recents: Pick[] = [];
-  for (const p of plays) {
-    if (!p.track || recents.some((r) => r.trackId === p.track!.id)) continue;
-    recents.push({ trackId: p.track.id, title: p.track.title, artist: p.track.artist, artworkUrl: p.track.artwork_url });
-    if (recents.length === 3) break;
-  }
-
-  // Campus chart if it has unlocked, otherwise what the world is playing.
-  const trending: Pick[] = campus.length
-    ? campus.map((t) => ({ trackId: t.track_id, title: t.title, artist: t.artist, artworkUrl: t.artwork_url }))
-    : await getGlobalChart(9);
-  const trendingLabel = campus.length ? "Trending at NYU" : "Popular right now";
-
-  const live = presence && Date.now() - new Date(presence.updated_at).getTime() < LIVE_MINUTES * 60000;
+  const live = presence && Date.now() - new Date(presence.updated_at).getTime() < LIVE_MINUTES * 60_000;
   const connected = Boolean(settingsRes.data?.lastfm_username);
+  const active = friends.filter((f) => f.track);
 
   return (
-    <main className="flex flex-col gap-6">
+    <main className="flex flex-col gap-7">
       <AutopilotSync />
-      <header>
-        <h1 className="text-2xl font-bold">
-          {isNew && !connected ? "What's playing right now?" : `Hey @${profile.handle}`}
-        </h1>
-        {isNew && !connected && (
-          <p className="mt-1 text-sm opacity-70">
-            Connect your music below, or tap a song to set it by hand. Either way it counts for{" "}
-            {profile.school.short_name} on the NYU charts.
-          </p>
-        )}
-      </header>
 
-      {!connected && (
-        <section className="rounded-xl border border-foreground/15 p-4 text-sm">
-          <p className="font-semibold">Connect your music</p>
-          <p className="mt-1 opacity-70">
-            Let TunedIn pick up what you play on Spotify automatically, so you never have to tap. About two
-            minutes, once.
-          </p>
-          <Link href="/connect" className="btn mt-3 block">
-            Connect Spotify through Last.fm
-          </Link>
-        </section>
-      )}
-
-      {presence?.track && (
-        <section className="flex items-center gap-3 rounded-xl border border-foreground/15 p-3">
-          <Cover src={presence.track.artwork_url} size={56} />
+      <section>
+        <h1 className="mb-2 text-xs uppercase tracking-wide opacity-60">You</h1>
+        <div className="flex items-center gap-3 rounded-xl border border-foreground/15 p-3">
+          <Cover src={presence?.track?.artwork_url ?? null} size={56} />
           <div className="min-w-0 flex-1">
-            <p className="text-xs uppercase tracking-wide opacity-60">
-              {live ? "● Live now" : `Earlier today · ${ago(presence.updated_at)}`}
-            </p>
-            <p className="truncate font-semibold">{presence.track.title}</p>
-            <p className="truncate text-sm opacity-70">{presence.track.artist}</p>
+            {presence?.track ? (
+              <>
+                <p className="text-xs opacity-60">{live ? "● Listening now" : `Earlier today · ${timeAgo(presence.updated_at)}`}</p>
+                <p className="truncate font-semibold">{presence.track.title}</p>
+                <p className="truncate text-sm opacity-70">{presence.track.artist}</p>
+              </>
+            ) : (
+              <>
+                <p className="font-semibold">Nothing playing yet today</p>
+                <p className="text-sm opacity-70">
+                  {connected ? "Play something on Spotify and it shows up here." : "Connect your music to fill this in."}
+                </p>
+              </>
+            )}
           </div>
-          <PreviewButton trackId={presence.track.id} />
-          <OpenInSpotify trackId={presence.track.id} compact />
-        </section>
-      )}
+          {presence?.track && (
+            <>
+              <PreviewButton trackId={presence.track.id} />
+              <OpenInSpotify trackId={presence.track.id} compact />
+            </>
+          )}
+        </div>
+        <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm">
+          {!connected && (
+            <Link href="/connect" className="font-semibold underline">
+              Connect Spotify through Last.fm
+            </Link>
+          )}
+          <Link href="/checkin" className="underline opacity-70">
+            Set a song by hand
+          </Link>
+        </div>
+      </section>
 
-      <Link href="/checkin" className="field block text-foreground/50">
-        {connected ? "Set a song by hand" : "Search for a song"}
-      </Link>
+      <section>
+        <div className="mb-1 flex items-baseline justify-between">
+          <h2 className="text-xs uppercase tracking-wide opacity-60">Friends today</h2>
+          {friends.length > 0 && (
+            <Link href="/people" className="text-sm underline opacity-70">
+              All friends
+            </Link>
+          )}
+        </div>
+        {friends.length === 0 ? (
+          <div className="rounded-xl border border-foreground/15 p-4 text-sm">
+            <p className="font-semibold">This is where your friends&apos; music shows up.</p>
+            <p className="mt-1 opacity-70">Add a few people and you will see what each of them is playing.</p>
+            <Link href="/people" className="btn mt-3 block">
+              Find people
+            </Link>
+          </div>
+        ) : active.length === 0 ? (
+          <p className="text-sm opacity-60">None of your friends have played anything yet today.</p>
+        ) : (
+          <FriendActivityList friends={active.slice(0, 5)} activeOnly />
+        )}
+      </section>
 
-      <QuickPicks
-        sections={[
-          { label: "Again", picks: recents },
-          { label: trendingLabel, picks: trending },
-        ]}
-      />
-
-
+      <section>
+        <div className="mb-1 flex items-baseline justify-between">
+          <h2 className="text-xs uppercase tracking-wide opacity-60">NYU this week</h2>
+          <Link href="/charts" className="text-sm underline opacity-70">
+            Charts
+          </Link>
+        </div>
+        {campus.length === 0 ? (
+          <p className="text-sm opacity-60">
+            The NYU chart unlocks at {campusStatus.required} listeners. {campusStatus.listeners} so far.
+          </p>
+        ) : (
+          <ol className="flex flex-col">
+            {campus.map((t) => (
+              <li key={t.track_id} className="flex items-center gap-3 py-2">
+                <span className="w-4 text-right text-sm tabular-nums opacity-60">{t.rank}</span>
+                <Cover src={t.artwork_url} size={40} />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium">{t.title}</p>
+                  <p className="truncate text-xs opacity-70">{t.artist}</p>
+                </div>
+                <PreviewButton trackId={t.track_id} />
+              </li>
+            ))}
+          </ol>
+        )}
+      </section>
     </main>
   );
 }

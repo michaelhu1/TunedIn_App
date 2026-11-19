@@ -14,15 +14,10 @@ export default async function FriendsPage() {
   return (
     <main className="flex flex-col gap-6">
       <header>
-        <h1 className="text-2xl font-bold">Your friends</h1>
-        <nav aria-label="People" className="mt-3 flex gap-2 text-sm">
-          <Link href="/discover" className="rounded-full border border-foreground/20 px-3 py-1">
-            Discover
-          </Link>
-          <span aria-current="page" className="rounded-full border border-foreground bg-foreground px-3 py-1 text-background">
-            Your friends
-          </span>
-        </nav>
+        <Link href="/people" className="text-sm underline opacity-70">
+          ← Back to People
+        </Link>
+        <h1 className="mt-2 text-2xl font-bold">Add friends and requests</h1>
       </header>
       <FriendsManager me={profile.id} myHandle={profile.handle} rows={(data ?? []) as FriendRow[]} />
     </main>

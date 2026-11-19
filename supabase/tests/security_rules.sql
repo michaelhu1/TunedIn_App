@@ -360,4 +360,36 @@ savepoint s; select public.set_presence_from_play('00000000-0000-0000-0000-00000
 update public.user_settings set lastfm_username = 'someone_else' where user_id = '00000000-0000-0000-0000-00000000000a';
 reset role;
 select lastfm_cursor is null and lastfm_status is null and lastfm_synced_at is null as reset_done from public.user_settings where user_id = '00000000-0000-0000-0000-00000000000a';
+-- ---------------------------------------------------------------------------
+-- Friends chart (20261119210000_friends_charts.sql). B is the viewer; A has plays.
+-- ---------------------------------------------------------------------------
+reset role;
+delete from public.blocks where '00000000-0000-0000-0000-00000000000a' in (blocker_id, blocked_id);
+delete from public.friendships where '00000000-0000-0000-0000-00000000000a' in (requester_id, addressee_id);
+update public.user_settings set ghost_mode = false where user_id in ('00000000-0000-0000-0000-00000000000a', '00000000-0000-0000-0000-00000000000b');
+update public.profiles set show_stats = true where id in ('00000000-0000-0000-0000-00000000000a', '00000000-0000-0000-0000-00000000000b');
+set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-0000-0000-00000000000b","role":"authenticated"}', true);
+\echo '== 61 not friends: B sees own plays in the friends chart but none of A (alice 0, bob > 0)'
+select count(*) filter (where 'alice' = any(handles)) as rows_with_alice, count(*) filter (where 'bob' = any(handles)) as rows_with_bob from public.chart_friends_top_tracks(7, 50);
+reset role; insert into public.friendships (requester_id, addressee_id, status, accepted_at) values ('00000000-0000-0000-0000-00000000000a', '00000000-0000-0000-0000-00000000000b', 'accepted', now());
+set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-0000-0000-00000000000b","role":"authenticated"}', true);
+\echo '== 62 friends: A now appears (alice > 0)'
+select count(*) filter (where 'alice' = any(handles)) as rows_with_alice, count(*) filter (where 'bob' = any(handles)) as rows_with_bob from public.chart_friends_top_tracks(7, 50);
+reset role; update public.profiles set show_stats = false where id = '00000000-0000-0000-0000-00000000000a';
+set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-0000-0000-00000000000b","role":"authenticated"}', true);
+\echo '== 63 A hides stats: A drops out of the friends chart (alice 0)'
+select count(*) filter (where 'alice' = any(handles)) as rows_with_alice, count(*) filter (where 'bob' = any(handles)) as rows_with_bob from public.chart_friends_top_tracks(7, 50);
+reset role; update public.profiles set show_stats = true where id = '00000000-0000-0000-0000-00000000000a'; update public.user_settings set ghost_mode = true where user_id = '00000000-0000-0000-0000-00000000000a';
+set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-0000-0000-00000000000b","role":"authenticated"}', true);
+\echo '== 64 A in ghost mode: still out (alice 0)'
+select count(*) filter (where 'alice' = any(handles)) as rows_with_alice, count(*) filter (where 'bob' = any(handles)) as rows_with_bob from public.chart_friends_top_tracks(7, 50);
+\echo '== 65 the raw listens function is not callable by members (ERROR)'
+savepoint s; select * from public.chart_friends_listens(7); rollback to s;
+set local role anon;
+\echo '== 66 anon: chart_friends_top_tracks (ERROR)'
+savepoint s; select * from public.chart_friends_top_tracks(); rollback to s;
 rollback;

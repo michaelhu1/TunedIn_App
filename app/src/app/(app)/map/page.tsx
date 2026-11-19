@@ -8,7 +8,7 @@ type PresenceRow = {
   geo_cell: string | null;
   updated_at: string;
   track: { id: string; title: string; artist: string; artwork_url: string | null } | null;
-  profile: { handle: string } | null;
+  profile: { handle: string; display_name: string | null; avatar_url: string | null } | null;
 };
 
 export default async function MapPage() {
@@ -20,7 +20,7 @@ export default async function MapPage() {
   const [{ data: rows }, { data: settings }, { count: friendCount }] = await Promise.all([
     supabase
       .from("presence")
-      .select("user_id, geo_cell, updated_at, track:tracks(id, title, artist, artwork_url), profile:profiles(handle)")
+      .select("user_id, geo_cell, updated_at, track:tracks(id, title, artist, artwork_url), profile:profiles(handle, display_name, avatar_url)")
       .gt("expires_at", new Date().toISOString()),
     supabase.from("user_settings").select("share_location, ghost_mode").eq("user_id", me.id).maybeSingle(),
     supabase.from("my_friendships").select("friend_id", { count: "exact", head: true }).eq("status", "accepted"),
@@ -29,6 +29,8 @@ export default async function MapPage() {
   const people: MapPerson[] = ((rows ?? []) as unknown as PresenceRow[]).map((r) => ({
     userId: r.user_id,
     handle: r.profile?.handle ?? "someone",
+    displayName: r.profile?.display_name ?? null,
+    avatarUrl: r.profile?.avatar_url ?? null,
     isMe: r.user_id === me.id,
     cell: r.geo_cell,
     updatedAt: r.updated_at,
