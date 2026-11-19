@@ -24,6 +24,10 @@ export async function GET(request: NextRequest) {
 
   const started = Date.now();
   const admin = createAdminClient();
+
+  // Housekeeping: yesterday's songs and locations are already ignored everywhere, but the
+  // privacy policy says they are cleared, so remove the rows for real.
+  await admin.from("presence").delete().lt("expires_at", new Date().toISOString());
   const { data: due, error } = await admin
     .from("user_settings")
     .select("user_id, lastfm_username, lastfm_cursor")

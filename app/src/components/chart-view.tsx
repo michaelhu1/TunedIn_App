@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import Cover from "@/components/cover";
 import OpenInSpotify from "@/components/open-in-spotify";
 import PreviewButton from "@/components/preview-button";
+import ShareButton from "@/components/share-button";
 
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
@@ -30,7 +31,11 @@ export default async function ChartView({ school }: { school: string | null }) {
   return (
     <main className="flex flex-col gap-7">
       <header>
-        <h1 className="text-2xl font-bold">{scopeName} this week</h1>
+        <div className="flex items-center justify-between gap-3">
+          <h1 className="text-2xl font-bold">{scopeName} this week</h1>
+          {/* Shares the public version of this chart: totals only, viewable without an account. */}
+          <ShareButton path={school ? `/nyu/${school}` : "/nyu"} title={`${scopeName} this week on TunedIn`} />
+        </div>
         <ScopeNav schools={schools} active={school ?? "nyu"} mySchool={profile.school.slug} />
       </header>
 

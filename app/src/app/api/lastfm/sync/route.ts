@@ -14,6 +14,9 @@ export async function POST() {
   if (!session) return jsonError(401, "Sign in first.");
   const admin = createAdminClient();
 
+  // Clear out songs and locations from past days (see the same step in the scheduled reader).
+  await admin.from("presence").delete().lt("expires_at", new Date().toISOString());
+
   // Also marks the person as recently active, which the scheduled reader uses to decide
   // whose plays are worth checking often.
   await admin.from("user_settings").update({ last_active_at: new Date().toISOString() }).eq("user_id", session.userId);

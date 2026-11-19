@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getMyStats } from "@/lib/my-stats";
 import Avatar from "@/components/avatar";
 import BlockedList, { type BlockedRow } from "@/components/blocked-list";
+import DeleteAccount from "@/components/delete-account";
 import LastfmConnect from "@/components/lastfm-connect";
 import MyListening, { RANGE_DAYS, type RangeKey } from "@/components/my-listening";
 import PrivacySettings from "@/components/privacy-settings";
@@ -89,12 +90,16 @@ export default async function MePage({ searchParams }: { searchParams: Promise<{
       </section>
 
       <SignOutButton />
+      <DeleteAccount handle={profile.handle} />
 
       {/* Credits the data providers ask for. */}
       <p className="text-xs opacity-50">
         Song details and previews from Deezer. Automatic listening data from{" "}
         <a href="https://www.last.fm" target="_blank" rel="noreferrer" className="underline">Last.fm</a>. Map data ©
-        OpenStreetMap contributors, tiles by OpenFreeMap. TunedIn is open source under the MIT license.
+        OpenStreetMap contributors, tiles by OpenFreeMap. TunedIn is open source under the MIT license.{" "}
+        <Link href="/privacy" className="underline">
+          Privacy
+        </Link>
       </p>
     </main>
   );

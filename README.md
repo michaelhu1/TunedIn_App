@@ -3,8 +3,9 @@
 [![CI](https://github.com/michaelhu1/TunedIn_App/actions/workflows/ci.yml/badge.svg)](https://github.com/michaelhu1/TunedIn_App/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-**See what the people around you are listening to.** TunedIn is a campus music app: a map of
-what your friends are playing right now, and live charts of what your school has on repeat.
+**See what the people around you are listening to.** TunedIn is a campus music app: a feed and
+map of what your friends are playing right now, what is playing around you, and live charts of
+what your school has on repeat.
 It is free, open source, and launching at NYU.
 
 It is an installable web app (PWA), so it runs on any phone from a link with no app store.
@@ -13,11 +14,12 @@ It is an installable web app (PWA), so it runs on any phone from a link with no 
 
 | | |
 |---|---|
-| **One-tap check-in** | Tap an album cover to say what you are playing. It stays up for the day: "live" for 30 minutes, then "earlier today". |
-| **Friends map** | Friends appear as album-cover pins inside a zone about 1 km wide, never at an exact spot. Tap one for a 30-second preview or to open the song in Spotify. |
-| **Campus charts** | Top songs, artists and listeners for all of NYU and for each school, plus a school-vs-school leaderboard. |
-| **NYU-only sign-up** | A one-time code sent to an @nyu.edu address. No passwords. |
-| **Autopilot** | Optional: connect a Last.fm username and plays are counted automatically. |
+| **Your music, automatically** | Link Spotify to a free Last.fm account once and every play arrives by itself. TunedIn does not play music; it is a social layer on what you already stream. Songs can also be set by hand. |
+| **Friends feed** | Home shows what each friend is playing today, with a green dot for listening now, 30-second previews and one tap to open the song in Spotify. |
+| **Two maps** | *Friends*: each friend in a zone about 1 km wide, never an exact spot. *Public*: busy areas such as "12 listening around Washington Square" and the songs playing there, with nobody identified. |
+| **Charts** | Top songs and artists for NYU, each school and your friends, plus a school-vs-school leaderboard. A public version at `/nyu` works without an account. |
+| **Profiles and friend-making** | Photo, bio, prompt, genre tags, concerts and a taste match ("72%: you both play SZA"), and a list of people you might click with. |
+| **Safety and control** | NYU-only sign-up by emailed code, block and report, ghost mode, a plain-language [privacy page](app/src/app/privacy/page.tsx), and account deletion that removes everything. |
 
 ## Design decisions worth reading
 
@@ -103,9 +105,11 @@ http://127.0.0.1:54324 and no real email is sent. `npm test` runs the unit tests
 
 ## Status
 
-Working: sign-up, check-in, charts, friends, the map, previews, privacy controls.
-Next: public share cards, the background Last.fm reader, report and block, and finding people
-with similar taste.
+Live at [tuned-in-app.vercel.app](https://tuned-in-app.vercel.app). Working: everything in the table above.
+Next: testing with a first group of NYU students, a review screen for reports, and Apple Music.
+
+How plays are read from streaming services, and the scheduled job behind it, is described in
+[docs/AUTOPILOT.md](docs/AUTOPILOT.md).
 
 ## Credits
 
