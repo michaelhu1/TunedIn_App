@@ -1,9 +1,32 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-export default function LastfmConnect({ username }: { username: string | null }) {
+// What the reader last found for this person (see src/lib/lastfm-sync.ts).
+const STATUS_TEXT: Record<string, string> = {
+  ok: "Reading your plays automatically.",
+  private: "Your Last.fm profile hides its recent tracks, so we cannot read your plays. Turn that off in Last.fm, under Settings, Privacy.",
+  not_found: "Last.fm no longer has a user with this name. Disconnect and enter the right one.",
+  error: "Last.fm did not answer last time. We will keep trying.",
+};
+
+function ago(iso: string): string {
+  const mins = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
+  if (mins < 1) return "just now";
+  return mins < 60 ? `${mins} min ago` : `${Math.round(mins / 60)}h ago`;
+}
+
+export default function LastfmConnect({
+  username,
+  status = null,
+  syncedAt = null,
+}: {
+  username: string | null;
+  status?: string | null;
+  syncedAt?: string | null;
+}) {
   const router = useRouter();
   const [value, setValue] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -33,6 +56,10 @@ export default function LastfmConnect({ username }: { username: string | null })
         <p>
           Last.fm connected as <span className="font-semibold">{username}</span>
         </p>
+        <p className={`mt-1 ${status && status !== "ok" ? "text-red-500" : "opacity-60"}`}>
+          {status ? STATUS_TEXT[status] ?? "" : "We will start reading your plays in a moment."}
+          {status === "ok" && syncedAt ? ` Last checked ${ago(syncedAt)}.` : ""}
+        </p>
         <button className="mt-1 underline opacity-70" disabled={busy} onClick={() => save(null)}>
           Disconnect
         </button>
@@ -50,7 +77,7 @@ export default function LastfmConnect({ username }: { username: string | null })
       }}
     >
       <label htmlFor="lastfm" className="text-sm opacity-80">
-        Count every play automatically. Enter your Last.fm username
+        Your Last.fm username
       </label>
       <div className="flex gap-2">
         <input
@@ -68,8 +95,11 @@ export default function LastfmConnect({ username }: { username: string | null })
         </button>
       </div>
       <p className="text-xs opacity-60">
-        No Last.fm yet? Create a free account at last.fm, then connect Spotify under its Settings, Applications. We only read your public Last.fm profile, and anything it logs is already public there.
+        We read your Spotify plays through Last.fm. We only read your public Last.fm profile.
       </p>
+      <Link href="/connect" className="text-sm underline">
+        New to Last.fm? Follow the two-minute setup
+      </Link>
       {error && <p role="alert" className="text-sm text-red-500">{error}</p>}
     </form>
   );

@@ -345,4 +345,19 @@ select count(*) as self_suggested from public.people_you_might_click_with(50) wh
 set local role anon;
 \echo '== 58 anon: people_you_might_click_with (ERROR)'
 savepoint s; select * from public.people_you_might_click_with(); rollback to s;
+-- ---------------------------------------------------------------------------
+-- Last.fm reader (20261119190000_lastfm_sync.sql)
+-- ---------------------------------------------------------------------------
+reset role;
+update public.user_settings set lastfm_username = 'someone', lastfm_cursor = now(), lastfm_status = 'ok', lastfm_synced_at = now() where user_id = '00000000-0000-0000-0000-00000000000a';
+set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-0000-0000-00000000000a","role":"authenticated"}', true);
+\echo '== 59 A cannot fake the reader: write the cursor (ERROR), write the status (ERROR), call set_presence_from_play (ERROR)'
+savepoint s; update public.user_settings set lastfm_cursor = now() - interval '1 year' where user_id = '00000000-0000-0000-0000-00000000000a'; rollback to s;
+savepoint s; update public.user_settings set lastfm_status = 'ok' where user_id = '00000000-0000-0000-0000-00000000000a'; rollback to s;
+savepoint s; select public.set_presence_from_play('00000000-0000-0000-0000-00000000000a', '00000000-0000-0000-0000-0000000000aa', now(), true); rollback to s;
+\echo '== 60 A changes their Last.fm username: the import position is reset (expect t)'
+update public.user_settings set lastfm_username = 'someone_else' where user_id = '00000000-0000-0000-0000-00000000000a';
+reset role;
+select lastfm_cursor is null and lastfm_status is null and lastfm_synced_at is null as reset_done from public.user_settings where user_id = '00000000-0000-0000-0000-00000000000a';
 rollback;

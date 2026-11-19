@@ -4,7 +4,8 @@ import { NextResponse, type NextRequest } from "next/server";
 // Runs before every page. Two jobs:
 //   1. Refresh the Supabase session cookie so people stay signed in.
 //   2. Keep signed-out visitors out of the app, and signed-in people off the login page.
-const PUBLIC_PATHS = ["/", "/login", "/icon", "/apple-icon", "/manifest.webmanifest"];
+// /api/cron/* is called by the scheduler, not a browser, and checks its own secret.
+const PUBLIC_PATHS = ["/", "/login", "/icon", "/apple-icon", "/manifest.webmanifest", "/api/cron/lastfm"];
 
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request });

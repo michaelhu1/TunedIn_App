@@ -1,4 +1,5 @@
 import { requireProfile } from "@/lib/auth";
+import AutopilotSync from "@/components/autopilot-sync";
 import { createClient } from "@/lib/supabase/server";
 import MapView, { type MapPerson } from "./map-view";
 
@@ -38,6 +39,7 @@ export default async function MapPage() {
 
   return (
     <main className="flex flex-col gap-4">
+      <AutopilotSync />
       <h1 className="text-2xl font-bold">Map</h1>
       <MapView
         myId={me.id}

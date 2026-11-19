@@ -41,7 +41,7 @@ export default function OnboardingForm({ userId, schools }: { userId: string; sc
       );
       return;
     }
-    router.replace("/home");
+    router.replace("/connect");
     router.refresh();
   }
 

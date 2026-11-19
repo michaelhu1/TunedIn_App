@@ -4,12 +4,14 @@ import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Avatar from "@/components/avatar";
 import { createClient } from "@/lib/supabase/client";
-import { AVATAR_SIZE, MAX_INPUT_BYTES, avatarPathFromPublicUrl, centeredSquareCrop } from "@/lib/image";
+import { AVATAR_SIZE, MAX_INPUT_BYTES, avatarPathFromPublicUrl, cropForFraming, type Framing, type SquareCrop } from "@/lib/image";
+import PhotoFramer from "./photo-framer";
 
 // Profile photo picker. It saves on its own (separately from the rest of the editor's
 // form) because a photo is a file upload, not a text field.
 //
-// The photo is shrunk to a 256x256 JPEG on the device before it is sent. Two reasons:
+// After picking, the person positions the photo ("move and zoom", see photo-framer.tsx),
+// then it is shrunk to a 256x256 JPEG on the device before it is sent. Two reasons:
 //   1. Size: a phone photo is several MB; the result is a few tens of KB, well under the
 //      bucket's 512 KB limit, and quick to load for everyone who views the profile.
 //   2. Privacy (deliberate): redrawing the pixels onto a canvas and exporting a fresh
@@ -19,6 +21,14 @@ import { AVATAR_SIZE, MAX_INPUT_BYTES, avatarPathFromPublicUrl, centeredSquareCr
 type Status = { kind: "idle" } | { kind: "working"; label: string } | { kind: "error"; message: string };
 
 const UNSUPPORTED = "That photo format is not supported here. Try a JPEG or PNG.";
+
+// While positioning, we work from a copy no bigger than this on its long side. A 48-megapixel
+// phone photo takes hundreds of megabytes of memory once opened; the copy takes a few, is
+// still several times sharper than the 256px result, and keeps dragging smooth.
+const WORKING_MAX = 1280;
+
+/** A photo that has been picked and is waiting to be positioned. */
+type Pending = { canvas: HTMLCanvasElement; previewUrl: string; width: number; height: number };
 
 export default function AvatarUpload({
   userId,
@@ -34,21 +44,39 @@ export default function AvatarUpload({
   // Kept locally so the new photo shows straight away, before the page refresh lands.
   const [url, setUrl] = useState(currentUrl);
   const [status, setStatus] = useState<Status>({ kind: "idle" });
+  const [pending, setPending] = useState<Pending | null>(null);
   const working = status.kind === "working";
 
   async function onPick(file: File) {
     if (file.size > MAX_INPUT_BYTES) {
-      setStatus({ kind: "error", message: "That photo is too large. Pick one under 15 MB." });
+      setStatus({ kind: "error", message: "That file is too large to open here. Pick a different photo." });
       return;
     }
+    setStatus({ kind: "working", label: "Opening photo..." });
+    try {
+      setPending(await toWorkingCopy(file));
+      setStatus({ kind: "idle" });
+    } catch {
+      // Most often a HEIC photo in a browser that cannot decode HEIC (anything but Safari).
+      setStatus({ kind: "error", message: UNSUPPORTED });
+    }
+  }
+
+  function closeFramer() {
+    if (pending) URL.revokeObjectURL(pending.previewUrl);
+    setPending(null);
+  }
+
+  // The person has positioned the photo: cut out what is in the window and upload it.
+  async function onConfirm(framing: Framing, view: number) {
+    if (!pending) return;
     setStatus({ kind: "working", label: "Uploading..." });
 
     let blob: Blob;
     try {
-      blob = await toSquareJpeg(file);
+      blob = await exportSquareJpeg(pending.canvas, cropForFraming(framing, pending.width, pending.height, view));
     } catch {
-      // Most often a HEIC photo in a browser that cannot decode HEIC (anything but Safari).
-      setStatus({ kind: "error", message: UNSUPPORTED });
+      setStatus({ kind: "error", message: "Could not prepare the photo. Try again." });
       return;
     }
 
@@ -78,6 +106,7 @@ export default function AvatarUpload({
 
     await removeOldFile(url);
     setUrl(newUrl);
+    closeFramer();
     setStatus({ kind: "idle" });
     router.refresh();
   }
@@ -107,6 +136,29 @@ export default function AvatarUpload({
     } catch {
       // ignored, see above
     }
+  }
+
+  if (pending) {
+    return (
+      <div className="flex flex-col gap-2">
+        <PhotoFramer
+          source={pending.previewUrl}
+          width={pending.width}
+          height={pending.height}
+          busy={working}
+          onCancel={() => {
+            closeFramer();
+            setStatus({ kind: "idle" });
+          }}
+          onConfirm={onConfirm}
+        />
+        {status.kind === "error" && (
+          <p role="alert" className="text-center text-sm text-red-500">
+            {status.message}
+          </p>
+        )}
+      </div>
+    );
   }
 
   return (
@@ -163,28 +215,48 @@ export default function AvatarUpload({
   );
 }
 
-// Decode the picked file, crop the centre square, scale it to AVATAR_SIZE and export a
-// JPEG. Throws if the browser cannot decode the file.
-async function toSquareJpeg(file: File): Promise<Blob> {
+// Open the picked file and draw it onto a modest-sized canvas (see WORKING_MAX). The full
+// size original is released straight away. Throws if the browser cannot decode the file.
+async function toWorkingCopy(file: File): Promise<Pending> {
   const source = await decode(file);
   try {
-    const { sx, sy, size } = centeredSquareCrop(source.width, source.height);
+    const shrink = Math.min(1, WORKING_MAX / Math.max(source.width, source.height));
+    const width = Math.max(1, Math.round(source.width * shrink));
+    const height = Math.max(1, Math.round(source.height * shrink));
     const canvas = document.createElement("canvas");
-    canvas.width = AVATAR_SIZE;
-    canvas.height = AVATAR_SIZE;
+    canvas.width = width;
+    canvas.height = height;
     const ctx = canvas.getContext("2d");
     if (!ctx) throw new Error("No canvas");
     // JPEG has no transparency; without this a transparent PNG would turn black.
     ctx.fillStyle = "#ffffff";
-    ctx.fillRect(0, 0, AVATAR_SIZE, AVATAR_SIZE);
+    ctx.fillRect(0, 0, width, height);
     ctx.imageSmoothingQuality = "high";
-    ctx.drawImage(source.image, sx, sy, size, size, 0, 0, AVATAR_SIZE, AVATAR_SIZE);
-    return await new Promise<Blob>((resolve, reject) =>
-      canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("Export failed"))), "image/jpeg", 0.85),
+    ctx.drawImage(source.image, 0, 0, width, height);
+    const preview = await new Promise<Blob>((resolve, reject) =>
+      canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("Preview failed"))), "image/jpeg", 0.8),
     );
+    return { canvas, previewUrl: URL.createObjectURL(preview), width, height };
   } finally {
     source.release();
   }
+}
+
+// Cut the chosen square out of the working copy, scale it to AVATAR_SIZE and export a JPEG.
+// Exporting fresh pixels is also what drops the photo's hidden metadata.
+async function exportSquareJpeg(working: HTMLCanvasElement, crop: SquareCrop): Promise<Blob> {
+  const canvas = document.createElement("canvas");
+  canvas.width = AVATAR_SIZE;
+  canvas.height = AVATAR_SIZE;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("No canvas");
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, AVATAR_SIZE, AVATAR_SIZE);
+  ctx.imageSmoothingQuality = "high";
+  ctx.drawImage(working, crop.sx, crop.sy, crop.size, crop.size, 0, 0, AVATAR_SIZE, AVATAR_SIZE);
+  return await new Promise<Blob>((resolve, reject) =>
+    canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("Export failed"))), "image/jpeg", 0.85),
+  );
 }
 
 type Decoded = { image: CanvasImageSource; width: number; height: number; release: () => void };
