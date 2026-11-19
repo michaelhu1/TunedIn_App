@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { requireProfile } from "@/lib/auth";
-import { getFriendsLeaderboard, getFriendsTopArtists, getFriendsTopTracks, getSchools } from "@/lib/charts";
+import { MIN_PLAYS_TO_RANK, getFriendsLeaderboard, getFriendsTopArtists, getFriendsTopTracks, getSchools } from "@/lib/charts";
 import Avatar from "@/components/avatar";
 import { createClient } from "@/lib/supabase/server";
 import Cover from "@/components/cover";
@@ -27,6 +27,11 @@ export default async function FriendsChartView() {
     supabase.from("my_friendships").select("friend_id", { count: "exact", head: true }).eq("status", "accepted"),
     getFriendsLeaderboard(supabase),
   ]);
+
+  // Points are plays counted once per person per day, so two points means two people, or
+  // one person on two days. Anything below that is a single play and is not ranked.
+  const rankedTracks = tracks.filter((t) => t.points >= MIN_PLAYS_TO_RANK).map((t, i) => ({ ...t, rank: i + 1 }));
+  const rankedArtists = artists.filter((a) => a.points >= MIN_PLAYS_TO_RANK).map((a, i) => ({ ...a, rank: i + 1 }));
 
   return (
     <main className="flex flex-col gap-7">
@@ -72,8 +77,11 @@ export default async function FriendsChartView() {
 
           <section>
             <h2 className="mb-2 text-xs uppercase tracking-wide opacity-60">Top songs</h2>
+            {rankedTracks.length === 0 && (
+              <p className="text-sm opacity-60">No song has been played more than once yet this week.</p>
+            )}
             <ol className="flex flex-col">
-              {tracks.map((t) => (
+              {rankedTracks.map((t) => (
                 <li key={t.track_id} className="flex items-center gap-3 py-2">
                   <span className="w-6 text-right text-sm tabular-nums opacity-60">{t.rank}</span>
                   <Cover src={t.artwork_url} size={44} />
@@ -89,10 +97,10 @@ export default async function FriendsChartView() {
             </ol>
           </section>
 
-          <section>
+          <section hidden={rankedArtists.length === 0}>
             <h2 className="mb-2 text-xs uppercase tracking-wide opacity-60">Top artists</h2>
             <ol className="flex flex-col">
-              {artists.map((a) => (
+              {rankedArtists.map((a) => (
                 <li key={a.artist} className="flex items-center gap-3 py-2">
                   <span className="w-6 text-right text-sm tabular-nums opacity-60">{a.rank}</span>
                   <Cover src={a.artwork_url} size={44} className="rounded-full" />
@@ -108,7 +116,7 @@ export default async function FriendsChartView() {
       )}
 
       <p className="text-xs opacity-50">
-        Includes you and friends who show their stats. Each person counts once per song per day.
+        Includes you and friends who show their stats. Each person counts once per song per day, and a song is ranked once it has more than one play.
       </p>
     </main>
   );

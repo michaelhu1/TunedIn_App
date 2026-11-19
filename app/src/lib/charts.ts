@@ -55,3 +55,7 @@ export const getFriendsLeaderboard = (s: SupabaseClient, days = 7, limit = 25) =
   rpc<FriendListenerRow>(s, "chart_friends_top_listeners", { p_days: days, p_limit: limit });
 export const getFriendsTopArtists = (s: SupabaseClient, days = 7, limit = 5) =>
   rpc<FriendArtistRow>(s, "chart_friends_top_artists", { p_days: days, p_limit: limit });
+
+/** A song or artist has to be played more than once to be ranked. One play is not a
+ *  favourite, and with small numbers a single play could otherwise top a list. */
+export const MIN_PLAYS_TO_RANK = 2;

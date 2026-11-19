@@ -46,7 +46,9 @@ export default function OnboardingForm({
       setError(
         error.code === "23505"
           ? "That handle is taken. Try another."
-          : "Could not save your profile. Try again.",
+          : error.message?.includes("blocked_word")
+            ? "That handle is not allowed on TunedIn. Try another."
+            : "Could not save your profile. Try again.",
       );
       return;
     }

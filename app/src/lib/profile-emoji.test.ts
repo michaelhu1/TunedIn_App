@@ -38,6 +38,11 @@ describe("emojiForMajor", () => {
     ["Finance", "💼"],
     ["Biology", "🧬"],
     ["Psychology", "🧠"],
+    ["compsci", "💻"],
+    ["CS + Math", "💻"],
+    ["poli sci", "🏛️"],
+    ["Neural Science", "🧠"],
+    ["IDM", "🎨"],
     ["Musical Theatre", "🎭"],
     ["Secondary Education", "🍎"],
   ])("%s", (input, expected) => expect(emojiForMajor(input)).toBe(expected));

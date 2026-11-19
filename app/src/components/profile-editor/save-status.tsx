@@ -32,7 +32,7 @@ export default function SaveStatus({ state }: { state: SaveState }) {
   // aria-live so screen readers announce "Saved" without moving focus.
   return (
     <p aria-live="polite" className="min-h-5 text-sm opacity-60">
-      {state.kind === "saving" ? "Saving..." : state.kind === "saved" ? "Saved" : ""}
+      {state.kind === "saving" ? "Saving..." : state.kind === "saved" ? "✓ Saved" : ""}
     </p>
   );
 }

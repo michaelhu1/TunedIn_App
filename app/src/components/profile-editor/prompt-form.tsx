@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { PROMPT_ANSWER_MAX, PROMPTS, type PromptKey } from "@/lib/profile-options";
-import { charLength, validatePrompt } from "@/lib/profile-validation";
+import { charLength, validatePrompt, blockedWordMessage } from "@/lib/profile-validation";
 import SaveStatus, { useSaveState } from "./save-status";
 
 const PROMPT_LIST = Object.entries(PROMPTS) as [PromptKey, string][];
@@ -34,6 +34,8 @@ export default function PromptForm({
     const { error } = await createClient().from("profiles").update(checked.value).eq("id", userId);
     if (error) {
       console.error(error);
+      const wording = blockedWordMessage(error);
+      if (wording) return save.failed(wording);
       return save.failed(
         error.code === "23514" ? "That answer was not accepted. Shorten it and try again." : "Could not save. Try again.",
       );

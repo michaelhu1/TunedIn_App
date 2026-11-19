@@ -3,8 +3,9 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { HOMETOWN_MAX, MAJOR_MAX, PRONOUNS_MAX, STUDENT_STATUS, type StudentStatusKey } from "@/lib/profile-options";
-import { normalizeInstagram, validateOptionalText } from "@/lib/profile-validation";
+import { HOMETOWN_MAX, MAJOR_MAX, MAJOR_SUGGESTIONS, PRONOUNS_MAX, STUDENT_STATUS, type StudentStatusKey } from "@/lib/profile-options";
+import { emojiForMajor, flagForHometown } from "@/lib/profile-emoji";
+import { normalizeInstagram, validateOptionalText, blockedWordMessage } from "@/lib/profile-validation";
 import SaveStatus, { useSaveState } from "./save-status";
 
 // "" stands for no badge in the radio group; it is stored as null.
@@ -63,6 +64,8 @@ export default function AboutForm({
       .eq("id", userId);
     if (error) {
       console.error(error);
+      const wording = blockedWordMessage(error);
+      if (wording) return save.failed(wording);
       return save.failed(
         error.code === "23514"
           ? "Something there was not accepted. Check the lengths and the Instagram handle, then try again."
@@ -124,9 +127,20 @@ export default function AboutForm({
             id="major"
             value={major}
             onChange={(e) => edit(setMajor)(e.target.value)}
-            placeholder="Music business"
+            placeholder="Start typing, e.g. Music Business"
+            list="major-suggestions"
+            autoComplete="off"
             className="field"
           />
+          {/* Suggestions appear as you type; anything else can still be typed in full. */}
+          <datalist id="major-suggestions">
+            {MAJOR_SUGGESTIONS.map((m) => (
+              <option key={m} value={m} />
+            ))}
+          </datalist>
+          <p className="text-xs opacity-60" aria-live="polite">
+            {major.trim() ? `Shows as: ${[emojiForMajor(major), major.trim()].filter(Boolean).join(" ")}` : "Pick a suggestion or type your own."}
+          </p>
         </div>
         <div className="flex flex-col gap-1">
           <label htmlFor="hometown" className="text-sm opacity-80">
@@ -139,6 +153,9 @@ export default function AboutForm({
             placeholder="Houston, TX"
             className="field"
           />
+          <p className="text-xs opacity-60" aria-live="polite">
+            {hometown.trim() ? `Shows as: ${[flagForHometown(hometown), hometown.trim()].filter(Boolean).join(" ")}` : "City and state or country, like Queens, NY."}
+          </p>
         </div>
       </div>
 

@@ -68,7 +68,11 @@ export default function MyListening({ stats, range }: { stats: MyStats; range: R
             ))}
           </dl>
 
-          <div>
+          {stats.topTracks.length === 0 && stats.topArtists.length === 0 && (
+            <p className="text-sm opacity-60">No top songs yet for this period. A song or artist is ranked once you have played it more than once.</p>
+          )}
+
+          <div hidden={stats.topTracks.length === 0}>
             <h3 className="mb-1 text-sm font-semibold">Top songs</h3>
             <ol className="flex flex-col">
               {stats.topTracks.map((t, i) => (
@@ -86,7 +90,7 @@ export default function MyListening({ stats, range }: { stats: MyStats; range: R
             </ol>
           </div>
 
-          <div>
+          <div hidden={stats.topArtists.length === 0}>
             <h3 className="mb-1 text-sm font-semibold">Top artists</h3>
             <ol className="flex flex-col">
               {stats.topArtists.map((a, i) => (

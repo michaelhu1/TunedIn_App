@@ -66,8 +66,10 @@ export async function getMyStats(supabase: SupabaseClient, userId: string, days:
     differentSongs: tracks.size,
     differentArtists: artists.size,
     activeDays: dayKeys.size,
-    topTracks: byPlays(tracks).slice(0, 5),
-    topArtists: byPlays(artists).slice(0, 5),
+    // Only things played more than once are ranked (the same rule as MIN_PLAYS_TO_RANK in
+    // src/lib/charts.ts): a single play is not a favourite.
+    topTracks: byPlays(tracks).filter((t) => t.plays >= 2).slice(0, 5),
+    topArtists: byPlays(artists).filter((a) => a.plays >= 2).slice(0, 5),
     recent: rows.slice(0, 3).map((r) => ({
       trackId: r.track!.id,
       title: r.track!.title,

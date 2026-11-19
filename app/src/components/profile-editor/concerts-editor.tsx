@@ -12,8 +12,7 @@ import {
   firstFreePosition,
   formatConcertDate,
   sortConcerts,
-  validateConcert,
-} from "@/lib/profile-validation";
+  validateConcert, blockedWordMessage } from "@/lib/profile-validation";
 import SaveStatus, { useSaveState } from "./save-status";
 
 const STATUS_LIST = Object.entries(CONCERT_STATUS) as [ConcertStatusKey, string][];
@@ -52,6 +51,8 @@ export default function ConcertsEditor({ userId, initial }: { userId: string; in
       .insert({ user_id: userId, position, ...checked.value });
     if (error) {
       console.error(error);
+      const wording = blockedWordMessage(error);
+      if (wording) return save.failed(wording);
       // 23514 = a check refused it. 23505 = that slot is taken, most likely by another tab.
       return save.failed(
         error.code === "23514"

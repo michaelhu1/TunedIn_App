@@ -13,12 +13,16 @@ export default function ArtistPicker({
   initial = [],
   doneHref,
   doneLabel = "Done",
+  autoSave = false,
 }: {
   popular: Artist[];
   initial?: string[];
   /** Where to go after saving. Left out in the editor, where the picker stays on the page. */
   doneHref?: string;
   doneLabel?: string;
+  /** Save on every tap and hide the button. Used in the profile editor, where everything
+   *  you tap saves right away. */
+  autoSave?: boolean;
 }) {
   const router = useRouter();
   const [chosen, setChosen] = useState<string[]>(initial);
@@ -55,20 +59,24 @@ export default function ArtistPicker({
 
   function toggle(name: string) {
     setMessage(null);
-    setChosen((c) => (has(name) ? c.filter((x) => x.toLowerCase() !== name.toLowerCase()) : c.length >= MAX ? c : [...c, name]));
+    const next = has(name) ? chosen.filter((x) => x.toLowerCase() !== name.toLowerCase()) : chosen.length >= MAX ? chosen : [...chosen, name];
+    if (next === chosen) return;
+    setChosen(next);
+    if (autoSave) void save(next, chosen);
   }
 
-  async function save() {
+  async function save(names: string[] = chosen, before?: string[]) {
     setBusy(true);
     setMessage(null);
     const res = await fetch("/api/profile/artists", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ names: chosen }),
+      body: JSON.stringify({ names }),
     });
     const body = await res.json().catch(() => ({}));
     setBusy(false);
     if (!res.ok) {
+      if (before) setChosen(before); // an instant save that failed: put the picks back
       setMessage({ kind: "error", text: body.error ?? "Could not save. Try again." });
       return;
     }
@@ -77,7 +85,7 @@ export default function ArtistPicker({
       router.refresh();
       return;
     }
-    setChosen(body.names ?? chosen);
+    if (!autoSave) setChosen(body.names ?? names);
     setMessage({ kind: "ok", text: "Saved" });
     router.refresh();
   }
@@ -121,7 +129,7 @@ export default function ArtistPicker({
               <button
                 type="button"
                 aria-pressed={selected}
-                disabled={!selected && full}
+                disabled={(!selected && full) || (autoSave && busy)}
                 onClick={() => toggle(a.name)}
                 className="flex w-full flex-col items-center gap-1.5 text-center disabled:opacity-40"
               >
@@ -147,9 +155,12 @@ export default function ArtistPicker({
         {full ? `That is ${MAX}. Tap one to swap it out.` : `${chosen.length} of ${MAX} picked`}
       </p>
 
-      <button type="button" onClick={save} disabled={busy} className="btn">
-        {busy ? "Saving..." : doneLabel}
-      </button>
+      {!autoSave && (
+        <button type="button" onClick={() => save()} disabled={busy} className="btn">
+          {busy ? "Saving..." : doneLabel}
+        </button>
+      )}
+      {autoSave && busy && <p className="text-sm opacity-60">Saving...</p>}
       {message && (
         <p role={message.kind === "error" ? "alert" : "status"} className={`text-sm ${message.kind === "error" ? "text-danger" : "opacity-70"}`}>
           {message.text}

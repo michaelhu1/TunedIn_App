@@ -270,3 +270,14 @@ h2.uppercase {
   font-family: var(--font-label);
   letter-spacing: var(--label-tracking);
 }
+
+/* Dropdowns. On a computer the browser draws the open list itself and, left alone, uses its
+ * own white or dark-grey panel, which made the options unreadable in some themes (light
+ * text on a white panel). Giving the list the theme's own colours fixes that; phones use
+ * their native picker and ignore this. */
+select,
+select option,
+select optgroup {
+  background-color: var(--background);
+  color: var(--foreground);
+}
