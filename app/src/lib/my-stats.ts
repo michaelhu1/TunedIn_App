@@ -37,12 +37,13 @@ export async function getMyStats(supabase: SupabaseClient, userId: string, days:
     .eq("user_id", userId)
     .order("played_at", { ascending: false })
     .limit(MAX_PLAYS);
-  if (days) query = query.gte("played_at", new Date(Date.now() - days * 86_400_000).toISOString());
+  // Fetch one day more than needed; the exact cut by whole listening days happens below. (The
+  // spare day also covers the 25-hour day when the clocks go back.)
+  if (days) query = query.gte("played_at", new Date(Date.now() - (days + 1) * 86_400_000).toISOString());
 
   const { data } = await query;
-  // The query above reaches back `days` x 24 hours, which touches one calendar day too many
-  // (it once showed "8 days" for a week). Keep only whole listening days: today and the
-  // days - 1 before it.
+  // Keep only whole listening days: today and the days - 1 before it. (Cutting by hours
+  // alone once showed "8 days" for a week, because 7 x 24 hours touches eight calendar days.)
   const firstDay = days ? windowStartDay(days) : null;
   const rows = ((data ?? []) as unknown as Row[]).filter((r) => r.track && (!firstDay || listeningDay(r.played_at) >= firstDay));
 
