@@ -53,7 +53,7 @@ export default async function MePage({ searchParams }: { searchParams: Promise<{
       </section>
 
       <section>
-        <h2 className="mb-2 text-xs uppercase tracking-wide opacity-60">Autopilot</h2>
+        <h2 className="mb-2 text-xs uppercase tracking-wide opacity-60">Your music</h2>
         <LastfmConnect
           username={settings?.lastfm_username ?? null}
           status={settings?.lastfm_status ?? null}

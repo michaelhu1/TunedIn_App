@@ -10,7 +10,6 @@ import PreviewButton from "@/components/preview-button";
 import QuickPicks, { type Pick } from "@/components/quick-picks";
 
 const LIVE_MINUTES = 30;
-const AUTOPILOT_AFTER_CHECKINS = 5;
 
 type TrackJoin = { id: string; title: string; artist: string; artwork_url: string | null };
 
@@ -59,22 +58,35 @@ export default async function HomePage() {
   const trendingLabel = campus.length ? "Trending at NYU" : "Popular right now";
 
   const live = presence && Date.now() - new Date(presence.updated_at).getTime() < LIVE_MINUTES * 60000;
-  const checkins = plays.filter((p) => p.source === "checkin").length;
-  const offerAutopilot = !settingsRes.data?.lastfm_username && checkins >= AUTOPILOT_AFTER_CHECKINS;
+  const connected = Boolean(settingsRes.data?.lastfm_username);
 
   return (
     <main className="flex flex-col gap-6">
       <AutopilotSync />
       <header>
         <h1 className="text-2xl font-bold">
-          {isNew ? "What's playing right now?" : `Hey @${profile.handle}`}
+          {isNew && !connected ? "What's playing right now?" : `Hey @${profile.handle}`}
         </h1>
-        {isNew && (
+        {isNew && !connected && (
           <p className="mt-1 text-sm opacity-70">
-            Tap a song to check in. It counts for {profile.school.short_name} on the NYU charts.
+            Connect your music below, or tap a song to set it by hand. Either way it counts for{" "}
+            {profile.school.short_name} on the NYU charts.
           </p>
         )}
       </header>
+
+      {!connected && (
+        <section className="rounded-xl border border-foreground/15 p-4 text-sm">
+          <p className="font-semibold">Connect your music</p>
+          <p className="mt-1 opacity-70">
+            Let TunedIn pick up what you play on Spotify automatically, so you never have to tap. About two
+            minutes, once.
+          </p>
+          <Link href="/connect" className="btn mt-3 block">
+            Connect Spotify through Last.fm
+          </Link>
+        </section>
+      )}
 
       {presence?.track && (
         <section className="flex items-center gap-3 rounded-xl border border-foreground/15 p-3">
@@ -92,7 +104,7 @@ export default async function HomePage() {
       )}
 
       <Link href="/checkin" className="field block text-foreground/50">
-        Search for a song
+        {connected ? "Set a song by hand" : "Search for a song"}
       </Link>
 
       <QuickPicks
@@ -102,17 +114,7 @@ export default async function HomePage() {
         ]}
       />
 
-      {offerAutopilot && (
-        <section className="rounded-xl border border-foreground/15 p-4 text-sm">
-          <p className="font-semibold">Tired of tapping?</p>
-          <p className="mt-1 opacity-70">
-            Autopilot counts every Spotify play for you through Last.fm. It takes about two minutes to set up.
-          </p>
-          <Link href="/me" className="mt-2 inline-block underline">
-            Set up Autopilot
-          </Link>
-        </section>
-      )}
+
     </main>
   );
 }

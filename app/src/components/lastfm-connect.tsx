@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 // What the reader last found for this person (see src/lib/lastfm-sync.ts).
@@ -76,7 +77,7 @@ export default function LastfmConnect({
       }}
     >
       <label htmlFor="lastfm" className="text-sm opacity-80">
-        Count every play automatically. Enter your Last.fm username
+        Your Last.fm username
       </label>
       <div className="flex gap-2">
         <input
@@ -94,8 +95,11 @@ export default function LastfmConnect({
         </button>
       </div>
       <p className="text-xs opacity-60">
-        No Last.fm yet? Create a free account at last.fm, then connect Spotify under its Settings, Applications. We only read your public Last.fm profile, and anything it logs is already public there.
+        We read your Spotify plays through Last.fm. We only read your public Last.fm profile.
       </p>
+      <Link href="/connect" className="text-sm underline">
+        New to Last.fm? Follow the two-minute setup
+      </Link>
       {error && <p role="alert" className="text-sm text-red-500">{error}</p>}
     </form>
   );
