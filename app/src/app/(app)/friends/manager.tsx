@@ -31,7 +31,12 @@ export default function FriendsManager({ me, myHandle, rows }: { me: string; myH
 
   const incoming = rows.filter((r) => r.status === "pending" && !r.sent_by_me);
   const outgoing = rows.filter((r) => r.status === "pending" && r.sent_by_me);
-  const friends = rows.filter((r) => r.status === "accepted");
+  // Your people, in the order the page was given (most listening in common first), narrowed
+  // by the search box once the list is long enough to need one.
+  const [search, setSearch] = useState("");
+  const allFriends = rows.filter((r) => r.status === "accepted");
+  const needle = search.trim().toLowerCase().replace(/^@/, "");
+  const friends = needle ? allFriends.filter((r) => r.handle.includes(needle)) : allFriends;
 
   async function run(action: () => Promise<string | null>, okText?: string) {
     setBusy(true);
@@ -124,10 +129,24 @@ export default function FriendsManager({ me, myHandle, rows }: { me: string; myH
         )}
       </form>
 
-      <Section title={`Friends (${friends.length})`}>
-        {friends.length === 0 && (
+      <Section title={`Your people (${allFriends.length})`}>
+        {allFriends.length === 0 && (
           <p className="text-sm opacity-60">No friends yet. Add someone above and their music shows up on Home and the map.</p>
         )}
+        {allFriends.length > 8 && (
+          <input
+            type="search"
+            aria-label="Search your friends"
+            placeholder="Search your friends"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="field mb-2 w-full py-2 text-sm"
+          />
+        )}
+        {needle && friends.length === 0 && <p className="text-sm opacity-60">Nobody matches “{search.trim()}”.</p>}
         {friends.map((r) => (
           <Row key={r.friend_id} row={r}>
             {confirming === r.friend_id ? (
@@ -161,7 +180,7 @@ export default function FriendsManager({ me, myHandle, rows }: { me: string; myH
         To block or report someone, open their profile and scroll to the bottom. People you have blocked are
         listed under{" "}
         <Link href="/settings#blocked" className="underline">
-          Me
+          Settings
         </Link>
         .
       </p>

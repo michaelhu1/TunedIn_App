@@ -36,7 +36,7 @@ export default function PrivacyPage() {
           Plays read from your public Last.fm profile if you connect one, and songs you set by hand. Playing a
           30-second preview inside TunedIn is not recorded.
         </Item>
-        <Item name="Your friends">Who you are friends with, pending requests, and anyone you have blocked.</Item>
+        <Item name="Your friends">Who you are friends with, pending requests, anyone you have blocked, and each “felt this” you send a friend about their song.</Item>
         <Item name="Your rough location, only if you turn it on">
           A zone about 1 km wide. Your phone rounds your position before sending it, so we never receive your
           exact location. We keep only your latest zone, not a history, and it is cleared at the end of each
@@ -55,7 +55,7 @@ export default function PrivacyPage() {
           list, unless you are in ghost mode. And anonymous totals for busy areas on the public map, such as
           &quot;12 listening around Washington Square&quot;, which never say who.
         </Item>
-        <Item name="Your friends">The song you are playing today, and your zone on the map if you share location.</Item>
+        <Item name="Your friends">The song you are playing today, your zone on the map if you share location, and when the two of you played the same song on the same day. A “felt this” is seen only by the friend you send it to.</Item>
         <Item name="Only you">Your full listening history and stats, your email and your settings.</Item>
         <Item name="The person running TunedIn">
           Can see the database in order to run the service and review reports. Reports are never shown to the
@@ -69,7 +69,7 @@ export default function PrivacyPage() {
         <Item name="Stats">One switch hides your top songs and artists from your profile.</Item>
         <Item name="Block and report">On anyone&apos;s profile. Blocking hides you from each other everywhere.</Item>
         <Item name="Delete your account">
-          Under Me. It removes your profile, photo, plays, friends and location immediately and for good.
+          In Settings. It removes your profile, photo, plays, friends and location immediately and for good.
         </Item>
       </Section>
 

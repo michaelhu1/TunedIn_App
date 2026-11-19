@@ -1,13 +1,13 @@
 import Link from "next/link";
 import { requireProfile } from "@/lib/auth";
 import { getChartStatus, getTopTracks } from "@/lib/charts";
-import { LIVE_MINUTES, getFriendsActivity, getPendingRequestCount, timeAgo } from "@/lib/friends";
+import { LIVE_MINUTES, getFriendsToday, getPendingRequestCount, timeAgo } from "@/lib/friends";
 import { getNearbyAreas } from "@/lib/nearby";
 import { createClient } from "@/lib/supabase/server";
 import AutopilotSync from "@/components/autopilot-sync";
 import Avatar from "@/components/avatar";
 import Cover from "@/components/cover";
-import FriendActivityList from "@/components/friend-activity-list";
+import FriendsTodaySections from "@/components/home/friends-today";
 import LocationPing from "@/components/location-ping";
 import OpenInSpotify from "@/components/open-in-spotify";
 import PreviewButton from "@/components/preview-button";
@@ -18,7 +18,8 @@ type TrackJoin = { id: string; title: string; artist: string; artwork_url: strin
 
 // Home is the app in one screen: what is everyone playing right now?
 //   1. You: your song today.
-//   2. Your friends: what each of them is on, live first.
+//   2. Your friends: a few moments worth noticing, who is on now, who played earlier
+//      (see src/components/home/friends-today.tsx).
 //   3. People you might click with: a short row of suggestions.
 //   4. Around you: how many people are listening in your area and to what (anonymous).
 //   5. Your campus: the top few songs at NYU this week.
@@ -39,7 +40,7 @@ export default async function HomePage() {
       .gt("expires_at", new Date().toISOString())
       .maybeSingle(),
     supabase.from("user_settings").select("lastfm_username, share_location, ghost_mode").eq("user_id", profile.id).maybeSingle(),
-    getFriendsActivity(supabase, profile.id),
+    getFriendsToday(supabase, profile.id),
     getPendingRequestCount(supabase),
     supabase.rpc("people_you_might_click_with", { p_limit: 8 }),
     getTopTracks(supabase, null, 7, 5),
@@ -50,6 +51,7 @@ export default async function HomePage() {
   const presence = presenceRes.data as unknown as { updated_at: string; track: TrackJoin | null } | null;
   const live = presence && Date.now() - new Date(presence.updated_at).getTime() < LIVE_MINUTES * 60_000;
   const connected = Boolean(settingsRes.data?.lastfm_username);
+  const hasFriends = friends.onNow.length + friends.earlier.length + friends.quiet.length > 0;
   const people = (suggestedRes.data ?? []) as Suggestion[];
   const sharingLocation = Boolean(settingsRes.data?.share_location) && !settingsRes.data?.ghost_mode;
   // The area you are in, if it is busy enough to show; otherwise the busiest one anywhere.
@@ -116,9 +118,11 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <section>
-        <h2 className="mb-1 text-xs uppercase tracking-wide opacity-60">Friends today</h2>
-        {friends.length === 0 ? (
+      {hasFriends ? (
+        <FriendsTodaySections data={friends} />
+      ) : (
+        <section>
+          <h2 className="mb-1 text-xs uppercase tracking-wide opacity-60">Friends today</h2>
           <div className="rounded-xl border border-foreground/15 p-4 text-sm">
             <p className="font-semibold">This is where your friends&apos; music shows up.</p>
             <p className="mt-1 opacity-70">
@@ -132,10 +136,8 @@ export default async function HomePage() {
               </Link>
             </div>
           </div>
-        ) : (
-          <FriendActivityList friends={friends} />
-        )}
-      </section>
+        </section>
+      )}
 
       {people.length > 0 && (
         <section>

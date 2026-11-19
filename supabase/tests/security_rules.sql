@@ -511,4 +511,44 @@ select count(*) filter (where handle = 'alice') as alice_rows, count(*) filter (
 set local role anon;
 \echo '== 85 anon: chart_friends_top_listeners (ERROR)'
 savepoint s; select * from public.chart_friends_top_listeners(); rollback to s;
+reset role;
+-- Friend moments and "felt this". A and B are friends; C is a stranger. A shows the test song today.
+delete from public.song_reactions;
+delete from public.plays where track_id = '00000000-0000-0000-0000-0000000000aa';
+insert into public.presence (user_id, track_id, updated_at, expires_at) values ('00000000-0000-0000-0000-00000000000a', '00000000-0000-0000-0000-0000000000aa', now(), now() + interval '1 hour')
+  on conflict (user_id) do update set track_id = excluded.track_id, updated_at = now(), expires_at = excluded.expires_at;
+insert into public.plays (user_id, track_id, played_at, source) values ('00000000-0000-0000-0000-00000000000a', '00000000-0000-0000-0000-0000000000aa', now(), 'checkin'), ('00000000-0000-0000-0000-00000000000b', '00000000-0000-0000-0000-0000000000aa', now(), 'checkin'), ('00000000-0000-0000-0000-00000000000c', '00000000-0000-0000-0000-0000000000aa', now(), 'checkin');
+update public.user_settings set ghost_mode = false where user_id in ('00000000-0000-0000-0000-00000000000a', '00000000-0000-0000-0000-00000000000b', '00000000-0000-0000-0000-00000000000c');
+set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-0000-0000-00000000000b","role":"authenticated"}', true);
+\echo '== 86 same song today: B sees friend A only, never stranger C (alice t, others 0)'
+select coalesce(bool_or(friend_id = '00000000-0000-0000-0000-00000000000a'), false) as alice, count(*) filter (where friend_id <> '00000000-0000-0000-0000-00000000000a') as others from public.friend_same_songs_today();
+\echo '== 87 B feels A song (t); a song A is not showing (f); stranger C cannot react to A (f)'
+select public.felt_this('00000000-0000-0000-0000-00000000000a', '00000000-0000-0000-0000-0000000000aa') as ok;
+select public.felt_this('00000000-0000-0000-0000-00000000000a', '00000000-0000-0000-0000-0000000000c1') as other_song;
+set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-0000-0000-00000000000c","role":"authenticated"}', true);
+select public.felt_this('00000000-0000-0000-0000-00000000000a', '00000000-0000-0000-0000-0000000000aa') as stranger;
+\echo '== 88 C cannot read the reaction between A and B (0); A, the receiver, can (1)'
+select count(*) as visible_to_c from public.song_reactions;
+set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-0000-0000-00000000000a","role":"authenticated"}', true);
+select count(*) as visible_to_a from public.song_reactions;
+set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-0000-0000-00000000000b","role":"authenticated"}', true);
+\echo '== 89 a reaction cannot be written or redirected directly (ERROR, ERROR)'
+savepoint s; insert into public.song_reactions (sender_id, receiver_id, track_id, day) values ('00000000-0000-0000-0000-00000000000b', '00000000-0000-0000-0000-00000000000c', '00000000-0000-0000-0000-0000000000aa', current_date); rollback to s;
+savepoint s; update public.song_reactions set receiver_id = '00000000-0000-0000-0000-00000000000c' where sender_id = '00000000-0000-0000-0000-00000000000b'; rollback to s;
+reset role; update public.user_settings set ghost_mode = true where user_id = '00000000-0000-0000-0000-00000000000a';
+set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-0000-0000-00000000000b","role":"authenticated"}', true);
+\echo '== 90 A goes ghost: no shared-song moment, no overlap row, and no new reaction (0, 0, f)'
+select count(*) as same_songs from public.friend_same_songs_today();
+select count(*) as overlap_rows from public.friend_overlap();
+select public.felt_this('00000000-0000-0000-0000-00000000000a', '00000000-0000-0000-0000-0000000000aa') as ok;
+set local role anon;
+\echo '== 91 anon: friend_same_songs_today, friend_overlap, felt_this (ERROR x3)'
+savepoint s; select * from public.friend_same_songs_today(); rollback to s;
+savepoint s; select * from public.friend_overlap(); rollback to s;
+savepoint s; select public.felt_this('00000000-0000-0000-0000-00000000000a', '00000000-0000-0000-0000-0000000000aa'); rollback to s;
 rollback;
