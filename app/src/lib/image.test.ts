@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { avatarPathFromPublicUrl, centeredSquareCrop } from "./image";
+import { avatarPathFromPublicUrl, centeredSquareCrop, MAX_ZOOM, clampFraming, cropForFraming, initialFraming, zoomAroundCentre } from "./image";
 
 describe("centeredSquareCrop", () => {
   it("trims the sides of a landscape image equally", () => {
@@ -60,5 +60,50 @@ describe("avatarPathFromPublicUrl", () => {
     expect(avatarPathFromPublicUrl("https://x.supabase.co/storage/v1/object/public/avatars/")).toBeNull();
     // The marker must start the path, not appear somewhere inside it.
     expect(avatarPathFromPublicUrl("https://evil.example/x/storage/v1/object/public/avatars/a.jpg")).toBeNull();
+  });
+});
+
+describe("framing a photo (drag and zoom)", () => {
+  const W = 1200, H = 800, VIEW = 300; // landscape: at zoom 1 it is 450x300 on screen
+
+  it("starts centred and filling the window", () => {
+    const f = initialFraming(W, H, VIEW);
+    expect(f).toEqual({ zoom: 1, x: -75, y: 0 });
+    // Same result as the old automatic centre crop.
+    expect(cropForFraming(f, W, H, VIEW)).toEqual({ sx: 200, sy: 0, size: 800 });
+  });
+
+  it("never lets an edge of the photo come inside the window", () => {
+    expect(clampFraming({ zoom: 1, x: 50, y: 40 }, W, H, VIEW)).toEqual({ zoom: 1, x: 0, y: 0 });
+    expect(clampFraming({ zoom: 1, x: -999, y: -999 }, W, H, VIEW)).toEqual({ zoom: 1, x: -150, y: 0 });
+  });
+
+  it("keeps zoom between 1 and the maximum", () => {
+    expect(clampFraming({ zoom: 0.2, x: 0, y: 0 }, W, H, VIEW).zoom).toBe(1);
+    expect(clampFraming({ zoom: 99, x: 0, y: 0 }, W, H, VIEW).zoom).toBe(MAX_ZOOM);
+  });
+
+  it("zooms around the middle of the window", () => {
+    const f = zoomAroundCentre(initialFraming(W, H, VIEW), 2, W, H, VIEW);
+    const crop = cropForFraming(f, W, H, VIEW);
+    expect(crop.size).toBe(400); // half of 800: twice as close
+    // Still centred on the middle of the photo (600, 400).
+    expect(crop.sx + crop.size / 2).toBeCloseTo(600);
+    expect(crop.sy + crop.size / 2).toBeCloseTo(400);
+  });
+
+  it("dragging left shows more of the right side", () => {
+    const crop = cropForFraming({ zoom: 1, x: -150, y: 0 }, W, H, VIEW);
+    expect(crop).toEqual({ sx: 400, sy: 0, size: 800 });
+  });
+
+  it("the saved square always lies inside the photo", () => {
+    for (const f of [{ zoom: 3.3, x: -1234, y: -777 }, { zoom: 1.7, x: 12, y: -5000 }, { zoom: 4, x: -1, y: -1 }]) {
+      const c = cropForFraming(f, W, H, VIEW);
+      expect(c.sx).toBeGreaterThanOrEqual(0);
+      expect(c.sy).toBeGreaterThanOrEqual(0);
+      expect(c.sx + c.size).toBeLessThanOrEqual(W + 1e-6);
+      expect(c.sy + c.size).toBeLessThanOrEqual(H + 1e-6);
+    }
   });
 });

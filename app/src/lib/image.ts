@@ -33,6 +33,65 @@ export function centeredSquareCrop(width: number, height: number): SquareCrop {
   };
 }
 
+// --- Repositioning a photo before saving (the "drag and zoom" step) -------------------
+//
+// The person sees their photo behind a square window of `view` pixels and can drag it and
+// zoom in. The picture is described by three numbers: `zoom` (1 = the smallest size that
+// still fills the window) and `x`, `y` (where the picture's top-left corner sits, in window
+// pixels; 0 or negative, because the picture is at least as big as the window).
+
+export const MAX_ZOOM = 4;
+
+export type Framing = { zoom: number; x: number; y: number };
+
+/** How many window pixels one image pixel takes up at a given zoom. */
+export function displayScale(width: number, height: number, view: number, zoom: number): number {
+  return (view / Math.min(width, height)) * zoom;
+}
+
+/** Keep the zoom in range and the picture covering the whole window (no empty edges). */
+export function clampFraming(f: Framing, width: number, height: number, view: number): Framing {
+  const zoom = Math.min(MAX_ZOOM, Math.max(1, f.zoom));
+  const scale = displayScale(width, height, view, zoom);
+  const minX = view - width * scale; // furthest left the picture may go
+  const minY = view - height * scale;
+  return {
+    zoom,
+    x: Math.min(0, Math.max(minX, f.x)),
+    y: Math.min(0, Math.max(minY, f.y)),
+  };
+}
+
+/** The starting position: smallest size that fills the window, centred. */
+export function initialFraming(width: number, height: number, view: number): Framing {
+  const scale = displayScale(width, height, view, 1);
+  return { zoom: 1, x: (view - width * scale) / 2, y: (view - height * scale) / 2 };
+}
+
+/** Change the zoom while keeping whatever is at the middle of the window in the middle. */
+export function zoomAroundCentre(f: Framing, nextZoom: number, width: number, height: number, view: number): Framing {
+  const before = displayScale(width, height, view, f.zoom);
+  const zoom = Math.min(MAX_ZOOM, Math.max(1, nextZoom));
+  const after = displayScale(width, height, view, zoom);
+  // The image point currently under the window's centre...
+  const cx = (view / 2 - f.x) / before;
+  const cy = (view / 2 - f.y) / before;
+  // ...should still be under the centre afterwards.
+  return clampFraming({ zoom, x: view / 2 - cx * after, y: view / 2 - cy * after }, width, height, view);
+}
+
+/** Which square of the image is showing in the window: what gets saved. */
+export function cropForFraming(f: Framing, width: number, height: number, view: number): SquareCrop {
+  const c = clampFraming(f, width, height, view);
+  const scale = displayScale(width, height, view, c.zoom);
+  const size = Math.min(view / scale, width, height);
+  return {
+    sx: Math.min(Math.max(0, -c.x / scale), width - size),
+    sy: Math.min(Math.max(0, -c.y / scale), height - size),
+    size,
+  };
+}
+
 const PUBLIC_AVATARS = "/storage/v1/object/public/avatars/";
 
 /**
