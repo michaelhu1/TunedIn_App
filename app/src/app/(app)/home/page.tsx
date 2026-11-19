@@ -1,27 +1,33 @@
 import Link from "next/link";
 import { requireProfile } from "@/lib/auth";
 import { getChartStatus, getTopTracks } from "@/lib/charts";
-import { LIVE_MINUTES, getFriendsActivity, timeAgo } from "@/lib/friends";
+import { LIVE_MINUTES, getFriendsActivity, getPendingRequestCount, timeAgo } from "@/lib/friends";
 import { createClient } from "@/lib/supabase/server";
 import AutopilotSync from "@/components/autopilot-sync";
+import Avatar from "@/components/avatar";
 import Cover from "@/components/cover";
 import FriendActivityList from "@/components/friend-activity-list";
 import OpenInSpotify from "@/components/open-in-spotify";
 import PreviewButton from "@/components/preview-button";
+import { matchLabel, reasonsFor, type Suggestion } from "@/components/discover/reasons";
 
 type TrackJoin = { id: string; title: string; artist: string; artwork_url: string | null };
 
-// Home answers the question the app exists for: what is everyone playing right now?
+// Home is the app in one screen: what is everyone playing right now?
 //   1. You: your song today.
-//   2. Your friends: what each of them is on.
-//   3. Your campus: the top few songs at NYU this week.
+//   2. Your friends: what each of them is on, live first.
+//   3. People you might click with: a short row of suggestions.
+//   4. Your campus: the top few songs at NYU this week.
+// "Add friends" (top right) leads to adding people and answering requests, and carries a red
+// badge when someone is waiting on you.
+//
 // TunedIn does not play music, so there is nothing here to browse or queue. Setting a song
 // by hand is one small link for people who have not connected a streaming service.
 export default async function HomePage() {
   const profile = await requireProfile();
   const supabase = await createClient();
 
-  const [presenceRes, settingsRes, friends, campus, campusStatus] = await Promise.all([
+  const [presenceRes, settingsRes, friends, pending, suggestedRes, campus, campusStatus] = await Promise.all([
     supabase
       .from("presence")
       .select("updated_at, track:tracks(id, title, artist, artwork_url)")
@@ -30,6 +36,8 @@ export default async function HomePage() {
       .maybeSingle(),
     supabase.from("user_settings").select("lastfm_username").eq("user_id", profile.id).maybeSingle(),
     getFriendsActivity(supabase, profile.id),
+    getPendingRequestCount(supabase),
+    supabase.rpc("people_you_might_click_with", { p_limit: 8 }),
     getTopTracks(supabase, null, 7, 5),
     getChartStatus(supabase, null),
   ]);
@@ -37,14 +45,30 @@ export default async function HomePage() {
   const presence = presenceRes.data as unknown as { updated_at: string; track: TrackJoin | null } | null;
   const live = presence && Date.now() - new Date(presence.updated_at).getTime() < LIVE_MINUTES * 60_000;
   const connected = Boolean(settingsRes.data?.lastfm_username);
-  const active = friends.filter((f) => f.track);
+  const people = (suggestedRes.data ?? []) as Suggestion[];
 
   return (
     <main className="flex flex-col gap-7">
       <AutopilotSync />
 
+      <header className="flex items-center justify-between gap-3">
+        <h1 className="text-2xl font-bold">TunedIn</h1>
+        <Link
+          href="/friends"
+          className="relative rounded-full border border-foreground/20 px-4 py-2 text-sm font-semibold"
+          aria-label={pending > 0 ? `Add friends and requests, ${pending} waiting` : "Add friends and requests"}
+        >
+          Add friends
+          {pending > 0 && (
+            <span className="absolute -right-1.5 -top-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1 text-xs font-bold text-white">
+              {pending}
+            </span>
+          )}
+        </Link>
+      </header>
+
       <section>
-        <h1 className="mb-2 text-xs uppercase tracking-wide opacity-60">You</h1>
+        <h2 className="mb-2 text-xs uppercase tracking-wide opacity-60">You</h2>
         <div className="flex items-center gap-3 rounded-xl border border-foreground/15 p-3">
           <Cover src={presence?.track?.artwork_url ?? null} size={56} />
           <div className="min-w-0 flex-1">
@@ -83,28 +107,55 @@ export default async function HomePage() {
       </section>
 
       <section>
-        <div className="mb-1 flex items-baseline justify-between">
-          <h2 className="text-xs uppercase tracking-wide opacity-60">Friends today</h2>
-          {friends.length > 0 && (
-            <Link href="/people" className="text-sm underline opacity-70">
-              All friends
-            </Link>
-          )}
-        </div>
+        <h2 className="mb-1 text-xs uppercase tracking-wide opacity-60">Friends today</h2>
         {friends.length === 0 ? (
           <div className="rounded-xl border border-foreground/15 p-4 text-sm">
             <p className="font-semibold">This is where your friends&apos; music shows up.</p>
-            <p className="mt-1 opacity-70">Add a few people and you will see what each of them is playing.</p>
-            <Link href="/people" className="btn mt-3 block">
-              Find people
+            <p className="mt-1 opacity-70">
+              Add people by their handle, or start with the suggestions below. Once they accept, you will see
+              what each of them is playing.
+            </p>
+            <Link href="/friends" className="btn mt-3 block">
+              Add friends
             </Link>
           </div>
-        ) : active.length === 0 ? (
-          <p className="text-sm opacity-60">None of your friends have played anything yet today.</p>
         ) : (
-          <FriendActivityList friends={active.slice(0, 5)} activeOnly />
+          <FriendActivityList friends={friends} />
         )}
       </section>
+
+      {people.length > 0 && (
+        <section>
+          <div className="mb-2 flex items-baseline justify-between">
+            <h2 className="text-xs uppercase tracking-wide opacity-60">People you might click with</h2>
+            <Link href="/discover" className="text-sm underline opacity-70">
+              See all
+            </Link>
+          </div>
+          {/* A row that scrolls sideways. Each card links to the full profile. */}
+          <ul className="-mx-5 flex snap-x gap-3 overflow-x-auto px-5 pb-2">
+            {people.map((p) => {
+              const match = matchLabel(p);
+              const reason = reasonsFor(p, 1)[0];
+              return (
+                <li key={p.user_id} className="w-40 shrink-0 snap-start">
+                  <Link
+                    href={`/u/${p.handle}`}
+                    className="flex h-full flex-col items-center gap-2 rounded-xl border border-foreground/15 p-3 text-center"
+                  >
+                    <Avatar handle={p.handle} src={p.avatar_url} size={56} />
+                    <p className="w-full truncate text-sm font-semibold">{p.display_name ?? `@${p.handle}`}</p>
+                    {match && (
+                      <span className="rounded-full bg-foreground px-2 py-0.5 text-xs font-semibold text-background">{match}</span>
+                    )}
+                    {reason && <p className="line-clamp-3 text-xs opacity-70">{reason}</p>}
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
 
       <section>
         <div className="mb-1 flex items-baseline justify-between">

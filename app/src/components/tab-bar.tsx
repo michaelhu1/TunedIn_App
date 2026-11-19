@@ -4,11 +4,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const TABS: { href: string; label: string; also?: string[] }[] = [
-  { href: "/home", label: "Home" },
+  // Home is the friends feed, so adding friends, suggestions and other people's profiles
+  // all belong to it.
+  { href: "/home", label: "Home", also: ["/discover", "/friends", "/u", "/checkin", "/connect"] },
   { href: "/map", label: "Map" },
   { href: "/charts", label: "Charts" },
-  // One tab for friends, suggestions and other people's profiles.
-  { href: "/people", label: "People", also: ["/discover", "/friends", "/u"] },
   { href: "/me", label: "Me" },
 ];
 
@@ -19,7 +19,7 @@ export default function TabBar({ pendingRequests = 0 }: { pendingRequests?: numb
       <ul className="mx-auto flex max-w-md">
         {TABS.map((t) => {
           const active = [t.href, ...(t.also ?? [])].some((h) => path === h || path.startsWith(h + "/"));
-          const badge = t.href === "/people" && pendingRequests > 0;
+          const badge = t.href === "/home" && pendingRequests > 0;
           return (
             <li key={t.href} className="flex-1">
               <Link

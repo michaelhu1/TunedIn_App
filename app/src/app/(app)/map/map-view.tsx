@@ -306,7 +306,7 @@ export default function MapView({
       {friendCount === 0 && (
         <Notice>
           The map shows your friends, and you have none here yet.{" "}
-          <Link href="/people" className="underline">Find people</Link>
+          <Link href="/friends" className="underline">Add friends</Link>
         </Notice>
       )}
 

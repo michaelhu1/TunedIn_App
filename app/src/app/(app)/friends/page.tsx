@@ -14,8 +14,8 @@ export default async function FriendsPage() {
   return (
     <main className="flex flex-col gap-6">
       <header>
-        <Link href="/people" className="text-sm underline opacity-70">
-          ← Back to People
+        <Link href="/home" className="text-sm underline opacity-70">
+          ← Back to Home
         </Link>
         <h1 className="mt-2 text-2xl font-bold">Add friends and requests</h1>
       </header>

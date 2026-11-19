@@ -37,8 +37,8 @@ export default async function FriendsChartView() {
         <section className="rounded-xl border border-foreground/15 p-5 text-sm">
           <p className="font-semibold">Add friends to see this chart.</p>
           <p className="mt-1 opacity-70">It ranks what you and your friends played this week, and shows who played what.</p>
-          <Link href="/people" className="btn mt-3 block">
-            Find people
+          <Link href="/friends" className="btn mt-3 block">
+            Add friends
           </Link>
         </section>
       ) : tracks.length === 0 ? (

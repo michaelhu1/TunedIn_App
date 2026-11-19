@@ -26,8 +26,8 @@ export default async function DiscoverPage() {
     <main className="flex flex-col gap-6">
       <header>
         <h1 className="text-2xl font-bold">People you might click with</h1>
-        <Link href="/people" className="mt-2 inline-block text-sm underline opacity-70">
-          ← Back to People
+        <Link href="/home" className="mt-2 inline-block text-sm underline opacity-70">
+          ← Back to Home
         </Link>
       </header>
 
