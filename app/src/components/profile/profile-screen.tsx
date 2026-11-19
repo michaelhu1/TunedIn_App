@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
 import { getFullProfile } from "@/lib/profile";
+import { emojiForMajor, flagForHometown } from "@/lib/profile-emoji";
 import { STUDENT_STATUS } from "@/lib/profile-options";
 import { createClient } from "@/lib/supabase/server";
 import Avatar from "@/components/avatar";
@@ -76,8 +77,16 @@ export default async function ProfileScreen({
     profile.concerts.length === 0;
   const name = profile.displayName ?? `@${profile.handle}`;
   const status = labelFor(profile.studentStatus, STUDENT_STATUS);
-  // "Major · Hometown", or just one of them.
-  const aboutLine = [profile.major, profile.hometown].filter(Boolean).join(" · ");
+  // "💻 Major · 🇺🇸 Hometown", or just one of them. The emoji and flag are guessed from the
+  // text and left out when nothing matches.
+  const majorEmoji = emojiForMajor(profile.major);
+  const hometownFlag = flagForHometown(profile.hometown);
+  const aboutLine = [
+    profile.major && (majorEmoji ? `${majorEmoji} ${profile.major}` : profile.major),
+    profile.hometown && (hometownFlag ? `${hometownFlag} ${profile.hometown}` : profile.hometown),
+  ]
+    .filter(Boolean)
+    .join(" · ");
 
   return (
     <main className="flex flex-col gap-6">
