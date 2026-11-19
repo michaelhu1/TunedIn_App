@@ -38,7 +38,7 @@ export default function AvatarUpload({
 
   async function onPick(file: File) {
     if (file.size > MAX_INPUT_BYTES) {
-      setStatus({ kind: "error", message: "That photo is too large. Pick one under 15 MB." });
+      setStatus({ kind: "error", message: "That file is too large to open here. Pick a different photo." });
       return;
     }
     setStatus({ kind: "working", label: "Uploading..." });

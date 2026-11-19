@@ -6,10 +6,12 @@
  *  stays sharp on high-density phone screens while keeping files around 20-40 KB. */
 export const AVATAR_SIZE = 256;
 
-/** Refuse picks larger than this before trying to decode them. Phone photos are usually
- *  2-8 MB; anything far bigger is probably not a photo, and decoding it could stall a
- *  low-end phone. */
-export const MAX_INPUT_BYTES = 15 * 1024 * 1024;
+/** Refuse picks larger than this before trying to decode them. This is only a guard on the
+ *  ORIGINAL file: whatever is picked is shrunk to a 256px JPEG of a few kilobytes before
+ *  anything is uploaded. Ordinary phone photos are 2-8 MB, but full-resolution 48-megapixel
+ *  and ProRAW shots from recent iPhones run to tens of megabytes, so the guard is generous.
+ *  Beyond it the file is probably not a photo. */
+export const MAX_INPUT_BYTES = 60 * 1024 * 1024;
 
 /** The rectangle to copy out of the source image: the largest centred square. */
 export type SquareCrop = { sx: number; sy: number; size: number };
