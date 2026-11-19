@@ -3,6 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import Avatar from "@/components/avatar";
+import ShareButton from "@/components/share-button";
 import { createClient } from "@/lib/supabase/client";
 import { HANDLE_PATTERN } from "@/lib/validation";
 
@@ -12,6 +14,7 @@ export type FriendRow = {
   friend_id: string;
   handle: string;
   school: string;
+  avatar_url?: string | null;
 };
 
 // All friend actions go straight from the browser to the database. The row-level security
@@ -23,6 +26,8 @@ export default function FriendsManager({ me, myHandle, rows }: { me: string; myH
   const [handle, setHandle] = useState("");
   const [message, setMessage] = useState<{ kind: "ok" | "error"; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
+  // Removing a friend takes a second tap, so it cannot happen by accident.
+  const [confirming, setConfirming] = useState<string | null>(null);
 
   const incoming = rows.filter((r) => r.status === "pending" && !r.sent_by_me);
   const outgoing = rows.filter((r) => r.status === "pending" && r.sent_by_me);
@@ -75,6 +80,17 @@ export default function FriendsManager({ me, myHandle, rows }: { me: string; myH
 
   return (
     <div className="flex flex-col gap-7">
+      {incoming.length > 0 && (
+        <Section title="Requests">
+          {incoming.map((r) => (
+            <Row key={r.friend_id} row={r}>
+              <button disabled={busy} onClick={() => accept(r.friend_id)} className="btn px-3 py-1.5 text-sm">Accept</button>
+              <button disabled={busy} onClick={() => remove(r.friend_id)} className="text-sm underline opacity-70">Decline</button>
+            </Row>
+          ))}
+        </Section>
+      )}
+
       <form
         className="flex flex-col gap-2"
         onSubmit={(e) => {
@@ -82,7 +98,7 @@ export default function FriendsManager({ me, myHandle, rows }: { me: string; myH
           add();
         }}
       >
-        <label htmlFor="add-friend" className="text-sm opacity-80">Add a friend by handle</label>
+        <label htmlFor="add-friend" className="text-xs uppercase tracking-wide opacity-60">Add a friend by handle</label>
         <div className="flex gap-2">
           <input
             id="add-friend"
@@ -97,6 +113,10 @@ export default function FriendsManager({ me, myHandle, rows }: { me: string; myH
           <button type="submit" disabled={busy || !handle.trim()} className="btn px-4">Add</button>
         </div>
         <p className="text-xs opacity-60">Your handle is @{myHandle}. Friends can add you with it.</p>
+        <div className="flex items-center gap-3 pt-1">
+          <ShareButton path={`/invite/${myHandle}`} title="Join me on TunedIn" label="Invite a friend" />
+          <span className="text-xs opacity-60">Sends your link. Anyone who joins with it asks to be your friend.</span>
+        </div>
         {message && (
           <p role={message.kind === "error" ? "alert" : "status"} className={`text-sm ${message.kind === "error" ? "text-red-500" : "opacity-80"}`}>
             {message.text}
@@ -104,24 +124,26 @@ export default function FriendsManager({ me, myHandle, rows }: { me: string; myH
         )}
       </form>
 
-      {incoming.length > 0 && (
-        <Section title="Requests">
-          {incoming.map((r) => (
-            <Row key={r.friend_id} row={r}>
-              <button disabled={busy} onClick={() => accept(r.friend_id)} className="btn px-3 py-1.5 text-sm">Accept</button>
-              <button disabled={busy} onClick={() => remove(r.friend_id)} className="text-sm underline opacity-70">Decline</button>
-            </Row>
-          ))}
-        </Section>
-      )}
-
       <Section title={`Friends (${friends.length})`}>
         {friends.length === 0 && (
-          <p className="text-sm opacity-60">No friends yet. Add someone above, and the map fills in as they check in.</p>
+          <p className="text-sm opacity-60">No friends yet. Add someone above and their music shows up on Home and the map.</p>
         )}
         {friends.map((r) => (
           <Row key={r.friend_id} row={r}>
-            <button disabled={busy} onClick={() => remove(r.friend_id)} className="text-sm underline opacity-60">Remove</button>
+            {confirming === r.friend_id ? (
+              <>
+                <button disabled={busy} onClick={() => remove(r.friend_id)} className="text-sm font-semibold text-red-500 underline">
+                  Remove
+                </button>
+                <button disabled={busy} onClick={() => setConfirming(null)} className="text-sm underline opacity-60">
+                  Keep
+                </button>
+              </>
+            ) : (
+              <button disabled={busy} onClick={() => setConfirming(r.friend_id)} className="text-sm underline opacity-60">
+                Remove
+              </button>
+            )}
           </Row>
         ))}
       </Section>
@@ -135,6 +157,14 @@ export default function FriendsManager({ me, myHandle, rows }: { me: string; myH
           ))}
         </Section>
       )}
+      <p className="text-sm opacity-60">
+        To block or report someone, open their profile and scroll to the bottom. People you have blocked are
+        listed under{" "}
+        <Link href="/me#blocked" className="underline">
+          Me
+        </Link>
+        .
+      </p>
     </div>
   );
 }
@@ -151,6 +181,9 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 function Row({ row, children }: { row: FriendRow; children: React.ReactNode }) {
   return (
     <li className="flex items-center gap-3 py-2">
+      <Link href={"/u/" + row.handle} aria-hidden tabIndex={-1}>
+        <Avatar handle={row.handle} src={row.avatar_url} size={36} />
+      </Link>
       <p className="min-w-0 flex-1 truncate">
         <Link href={"/u/" + row.handle} className="font-medium hover:underline">@{row.handle}</Link>
         <span className="opacity-60"> · {row.school}</span>

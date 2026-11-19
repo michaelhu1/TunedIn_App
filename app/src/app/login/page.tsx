@@ -134,6 +134,12 @@ export default function LoginPage() {
           {error}
         </p>
       )}
+      <p className="text-xs opacity-50">
+        By joining you agree to how TunedIn handles your data.{" "}
+        <a href="/privacy" className="underline">
+          Privacy
+        </a>
+      </p>
     </main>
   );
 }

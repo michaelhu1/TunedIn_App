@@ -360,4 +360,91 @@ savepoint s; select public.set_presence_from_play('00000000-0000-0000-0000-00000
 update public.user_settings set lastfm_username = 'someone_else' where user_id = '00000000-0000-0000-0000-00000000000a';
 reset role;
 select lastfm_cursor is null and lastfm_status is null and lastfm_synced_at is null as reset_done from public.user_settings where user_id = '00000000-0000-0000-0000-00000000000a';
+-- ---------------------------------------------------------------------------
+-- Friends chart (20261119210000_friends_charts.sql). B is the viewer; A has plays.
+-- ---------------------------------------------------------------------------
+reset role;
+delete from public.blocks where '00000000-0000-0000-0000-00000000000a' in (blocker_id, blocked_id);
+delete from public.friendships where '00000000-0000-0000-0000-00000000000a' in (requester_id, addressee_id);
+update public.user_settings set ghost_mode = false where user_id in ('00000000-0000-0000-0000-00000000000a', '00000000-0000-0000-0000-00000000000b');
+update public.profiles set show_stats = true where id in ('00000000-0000-0000-0000-00000000000a', '00000000-0000-0000-0000-00000000000b');
+set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-0000-0000-00000000000b","role":"authenticated"}', true);
+\echo '== 61 not friends: B sees own plays in the friends chart but none of A (alice 0, bob > 0)'
+select count(*) filter (where 'alice' = any(handles)) as rows_with_alice, count(*) filter (where 'bob' = any(handles)) as rows_with_bob from public.chart_friends_top_tracks(7, 50);
+reset role; insert into public.friendships (requester_id, addressee_id, status, accepted_at) values ('00000000-0000-0000-0000-00000000000a', '00000000-0000-0000-0000-00000000000b', 'accepted', now());
+set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-0000-0000-00000000000b","role":"authenticated"}', true);
+\echo '== 62 friends: A now appears (alice > 0)'
+select count(*) filter (where 'alice' = any(handles)) as rows_with_alice, count(*) filter (where 'bob' = any(handles)) as rows_with_bob from public.chart_friends_top_tracks(7, 50);
+reset role; update public.profiles set show_stats = false where id = '00000000-0000-0000-0000-00000000000a';
+set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-0000-0000-00000000000b","role":"authenticated"}', true);
+\echo '== 63 A hides stats: A drops out of the friends chart (alice 0)'
+select count(*) filter (where 'alice' = any(handles)) as rows_with_alice, count(*) filter (where 'bob' = any(handles)) as rows_with_bob from public.chart_friends_top_tracks(7, 50);
+reset role; update public.profiles set show_stats = true where id = '00000000-0000-0000-0000-00000000000a'; update public.user_settings set ghost_mode = true where user_id = '00000000-0000-0000-0000-00000000000a';
+set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-0000-0000-00000000000b","role":"authenticated"}', true);
+\echo '== 64 A in ghost mode: still out (alice 0)'
+select count(*) filter (where 'alice' = any(handles)) as rows_with_alice, count(*) filter (where 'bob' = any(handles)) as rows_with_bob from public.chart_friends_top_tracks(7, 50);
+\echo '== 65 the raw listens function is not callable by members (ERROR)'
+savepoint s; select * from public.chart_friends_listens(7); rollback to s;
+set local role anon;
+\echo '== 66 anon: chart_friends_top_tracks (ERROR)'
+savepoint s; select * from public.chart_friends_top_tracks(); rollback to s;
+-- ---------------------------------------------------------------------------
+-- Public map (20261119220000_public_map.sql). Uses a made-up cell, 'zzzzz0', so real or
+-- sample data in the database cannot affect the counts.
+-- ---------------------------------------------------------------------------
+reset role;
+insert into auth.users (id, email) values ('00000000-0000-0000-0000-0000000000e1', 'd@nyu.edu'), ('00000000-0000-0000-0000-0000000000e2', 'e@nyu.edu');
+insert into public.profiles (id, handle, university_id, school_id) values
+  ('00000000-0000-0000-0000-0000000000e1', 'sectest_d', gen_random_uuid(), current_setting('t.school')::uuid),
+  ('00000000-0000-0000-0000-0000000000e2', 'sectest_e', gen_random_uuid(), current_setting('t.school')::uuid);
+update public.user_settings set share_location = true, ghost_mode = false, count_me_nearby = true
+  where user_id in ('00000000-0000-0000-0000-00000000000a', '00000000-0000-0000-0000-00000000000b', '00000000-0000-0000-0000-00000000000c', '00000000-0000-0000-0000-0000000000e1', '00000000-0000-0000-0000-0000000000e2');
+delete from public.presence where user_id in ('00000000-0000-0000-0000-00000000000a', '00000000-0000-0000-0000-00000000000b', '00000000-0000-0000-0000-00000000000c', '00000000-0000-0000-0000-0000000000e1', '00000000-0000-0000-0000-0000000000e2');
+-- Four people in the area with a song.
+insert into public.presence (user_id, geo_cell, cell_at, track_id, updated_at, expires_at)
+select u, 'zzzzz0', now(), '00000000-0000-0000-0000-0000000000aa', now(), now() + interval '2 hours'
+from unnest(array['00000000-0000-0000-0000-00000000000a', '00000000-0000-0000-0000-00000000000b', '00000000-0000-0000-0000-00000000000c', '00000000-0000-0000-0000-0000000000e1']::uuid[]) u;
+set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-0000-0000-00000000000b","role":"authenticated"}', true);
+\echo '== 67 four people in an area: not shown (areas 0)'
+select count(*) as areas, coalesce(max(people), 0) as people from public.nearby_areas() where cell = 'zzzzz0';
+reset role;
+insert into public.presence (user_id, geo_cell, cell_at, track_id, updated_at, expires_at)
+values ('00000000-0000-0000-0000-0000000000e2', 'zzzzz0', now(), '00000000-0000-0000-0000-0000000000aa', now(), now() + interval '2 hours');
+set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-0000-0000-00000000000b","role":"authenticated"}', true);
+\echo '== 68 a fifth person arrives: shown (areas 1, people 5), marked as the viewer own area (t)'
+select count(*) as areas, coalesce(max(people), 0) as people from public.nearby_areas() where cell = 'zzzzz0';
+select my_area from public.nearby_areas() where cell = 'zzzzz0';
+\echo '== 69 what comes back names nobody: the only fields are song details and a count'
+select string_agg(distinct k, ', ' order by k) as fields_in_top_tracks
+from public.nearby_areas() a, jsonb_array_elements(a.top_tracks) t, jsonb_object_keys(t) k where a.cell = 'zzzzz0';
+\echo '== 70 E opts out of public totals themselves (1 row), and the area drops below the minimum (areas 0)'
+select set_config('request.jwt.claims','{"sub":"00000000-0000-0000-0000-0000000000e2","role":"authenticated"}', true);
+with u as (update public.user_settings set count_me_nearby = false where user_id = '00000000-0000-0000-0000-0000000000e2' returning 1) select count(*) as changed from u;
+select count(*) as areas, coalesce(max(people), 0) as people from public.nearby_areas() where cell = 'zzzzz0';
+reset role; update public.user_settings set count_me_nearby = true where user_id = '00000000-0000-0000-0000-0000000000e2';
+update public.user_settings set ghost_mode = true where user_id = '00000000-0000-0000-0000-0000000000e1';
+set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-0000-0000-00000000000b","role":"authenticated"}', true);
+\echo '== 71 D goes ghost: not counted (areas 0)'
+select count(*) as areas, coalesce(max(people), 0) as people from public.nearby_areas() where cell = 'zzzzz0';
+reset role; update public.user_settings set ghost_mode = false where user_id = '00000000-0000-0000-0000-0000000000e1';
+insert into public.presence (user_id, geo_cell, cell_at, track_id, updated_at, expires_at)
+values ('00000000-0000-0000-0000-0000000000e1', 'zzzzz0', now() - interval '4 hours', '00000000-0000-0000-0000-0000000000aa', now(), now() + interval '2 hours')
+on conflict (user_id) do update set geo_cell = excluded.geo_cell, cell_at = excluded.cell_at, track_id = excluded.track_id, expires_at = excluded.expires_at;
+set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-0000-0000-00000000000b","role":"authenticated"}', true);
+\echo '== 72 D location is four hours old: not counted as here now (areas 0)'
+select count(*) as areas, coalesce(max(people), 0) as people from public.nearby_areas() where cell = 'zzzzz0';
+\echo '== 73 B cannot lower the minimum (ERROR) or write place names (ERROR)'
+savepoint s; update public.app_settings set value = '1' where key = 'nearby_min_people'; rollback to s;
+savepoint s; insert into public.places (cell, name) values ('zzzzz0', 'Fake Place'); rollback to s;
+set local role anon;
+\echo '== 74 anon: nearby_areas (ERROR)'
+savepoint s; select * from public.nearby_areas(); rollback to s;
 rollback;

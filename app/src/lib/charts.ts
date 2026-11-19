@@ -41,3 +41,11 @@ export const getTopArtists = (s: SupabaseClient, school: string | null, days = 7
 export const getSchools = (s: SupabaseClient, days = 7) => rpc<SchoolRow>(s, "chart_schools", { p_days: days });
 export const getTopListeners = (s: SupabaseClient, school: string | null, days = 7, limit = 10) =>
   rpc<ListenerRow>(s, "chart_top_listeners", { p_school_slug: school, p_days: days, p_limit: limit });
+
+// --- Friends chart: you plus friends who show their stats (see *_friends_charts.sql) ---
+export type FriendTrackRow = TrackRow & { handles: string[] };
+export type FriendArtistRow = ArtistRow & { handles: string[] };
+export const getFriendsTopTracks = (s: SupabaseClient, days = 7, limit = 20) =>
+  rpc<FriendTrackRow>(s, "chart_friends_top_tracks", { p_days: days, p_limit: limit });
+export const getFriendsTopArtists = (s: SupabaseClient, days = 7, limit = 5) =>
+  rpc<FriendArtistRow>(s, "chart_friends_top_artists", { p_days: days, p_limit: limit });

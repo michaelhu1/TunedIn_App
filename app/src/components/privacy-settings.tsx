@@ -10,23 +10,27 @@ export default function PrivacySettings({
   userId,
   shareLocation,
   ghostMode,
+  countMeNearby,
 }: {
   userId: string;
   shareLocation: boolean;
   ghostMode: boolean;
+  countMeNearby: boolean;
 }) {
   const router = useRouter();
   const [share, setShare] = useState(shareLocation);
   const [ghost, setGhost] = useState(ghostMode);
+  const [nearby, setNearby] = useState(countMeNearby);
   const [error, setError] = useState<string | null>(null);
 
-  async function save(patch: { share_location?: boolean; ghost_mode?: boolean }) {
+  async function save(patch: { share_location?: boolean; ghost_mode?: boolean; count_me_nearby?: boolean }) {
     setError(null);
     const { error } = await createClient().from("user_settings").update(patch).eq("user_id", userId);
     if (error) {
       setError("Could not save. Try again.");
       setShare(shareLocation);
       setGhost(ghostMode);
+      setNearby(countMeNearby);
     }
     router.refresh();
   }
@@ -34,17 +38,28 @@ export default function PrivacySettings({
   return (
     <div className="flex flex-col gap-4">
       <Toggle
-        label="Share my rough location with friends"
-        detail="Friends see a zone about 1 km wide, never your exact spot, and only while you have the app open. Off means friends still see your song, with no location."
+        label="Share my rough location"
+        detail="Friends see you in a zone about 1 km wide, never your exact spot. Everyone else only sees anonymous totals for busy areas. Read only while the app is open. Off means friends still see your song, with no location."
         checked={share}
         onChange={(v) => {
           setShare(v);
           save({ share_location: v });
         }}
       />
+      {share && (
+        <Toggle
+          label="Count me in public area totals"
+          detail="Adds you, without your name, to numbers like &quot;12 listening around Washington Square&quot; on the public map. Areas only show with several people in them. Turn off to appear to friends only."
+          checked={nearby}
+          onChange={(v) => {
+            setNearby(v);
+            save({ count_me_nearby: v });
+          }}
+        />
+      )}
       <Toggle
         label="Ghost mode"
-        detail="Hide from friends completely: no song, no location. Your plays still count toward charts, without your name on the top listeners list."
+        detail="Hide completely: no song or location for friends, and not counted on the public map. Your plays still count toward charts, without your name on the top listeners list."
         checked={ghost}
         onChange={(v) => {
           setGhost(v);

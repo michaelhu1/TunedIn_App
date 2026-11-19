@@ -10,6 +10,12 @@ export default function Home() {
       <Link href="/login" className="btn mt-2 px-6">
         Join with your NYU email
       </Link>
+      <Link href="/nyu" className="text-sm underline opacity-70">
+        See what NYU is listening to
+      </Link>
+      <Link href="/privacy" className="mt-6 text-xs underline opacity-50">
+        Privacy
+      </Link>
     </main>
   );
 }

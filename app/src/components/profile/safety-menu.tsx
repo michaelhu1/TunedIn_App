@@ -44,7 +44,7 @@ export default function SafetyMenu({ me, userId, handle }: { me: string; userId:
       return;
     }
     // Their profile no longer exists for us, so leave the page.
-    router.replace("/friends");
+    router.replace("/home");
     router.refresh();
   }
 
@@ -71,7 +71,7 @@ export default function SafetyMenu({ me, userId, handle }: { me: string; userId:
     }
     if (alsoBlock) {
       await block();
-      router.replace("/friends");
+      router.replace("/home");
       router.refresh();
       return;
     }
