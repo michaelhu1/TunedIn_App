@@ -3,7 +3,29 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-export default function LastfmConnect({ username }: { username: string | null }) {
+// What the reader last found for this person (see src/lib/lastfm-sync.ts).
+const STATUS_TEXT: Record<string, string> = {
+  ok: "Reading your plays automatically.",
+  private: "Your Last.fm profile hides its recent tracks, so we cannot read your plays. Turn that off in Last.fm, under Settings, Privacy.",
+  not_found: "Last.fm no longer has a user with this name. Disconnect and enter the right one.",
+  error: "Last.fm did not answer last time. We will keep trying.",
+};
+
+function ago(iso: string): string {
+  const mins = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
+  if (mins < 1) return "just now";
+  return mins < 60 ? `${mins} min ago` : `${Math.round(mins / 60)}h ago`;
+}
+
+export default function LastfmConnect({
+  username,
+  status = null,
+  syncedAt = null,
+}: {
+  username: string | null;
+  status?: string | null;
+  syncedAt?: string | null;
+}) {
   const router = useRouter();
   const [value, setValue] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -32,6 +54,10 @@ export default function LastfmConnect({ username }: { username: string | null })
       <div className="text-sm">
         <p>
           Last.fm connected as <span className="font-semibold">{username}</span>
+        </p>
+        <p className={`mt-1 ${status && status !== "ok" ? "text-red-500" : "opacity-60"}`}>
+          {status ? STATUS_TEXT[status] ?? "" : "We will start reading your plays in a moment."}
+          {status === "ok" && syncedAt ? ` Last checked ${ago(syncedAt)}.` : ""}
         </p>
         <button className="mt-1 underline opacity-70" disabled={busy} onClick={() => save(null)}>
           Disconnect

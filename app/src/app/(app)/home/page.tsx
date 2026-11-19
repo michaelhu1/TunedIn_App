@@ -1,4 +1,5 @@
 import Link from "next/link";
+import AutopilotSync from "@/components/autopilot-sync";
 import { requireProfile } from "@/lib/auth";
 import { getTopTracks } from "@/lib/charts";
 import { getGlobalChart } from "@/lib/sources/deezer-chart";
@@ -63,6 +64,7 @@ export default async function HomePage() {
 
   return (
     <main className="flex flex-col gap-6">
+      <AutopilotSync />
       <header>
         <h1 className="text-2xl font-bold">
           {isNew ? "What's playing right now?" : `Hey @${profile.handle}`}
