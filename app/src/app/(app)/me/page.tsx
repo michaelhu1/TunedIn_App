@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { getMyStats } from "@/lib/my-stats";
@@ -28,6 +29,15 @@ export default async function MePage({ searchParams }: { searchParams: Promise<{
         <h1 className="text-3xl font-bold">@{profile.handle}</h1>
         <p className="mt-1 opacity-70">{profile.school.name}</p>
       </header>
+
+      <div className="-mt-4 flex gap-2">
+        <Link href={`/u/${profile.handle}`} className="flex-1 rounded-lg border border-foreground/20 py-2 text-center text-sm font-medium hover:bg-foreground/5">
+          View profile
+        </Link>
+        <Link href="/me/edit" className="flex-1 rounded-lg border border-foreground/20 py-2 text-center text-sm font-medium hover:bg-foreground/5">
+          Edit profile
+        </Link>
+      </div>
 
       <MyListening stats={stats} range={range} />
 
