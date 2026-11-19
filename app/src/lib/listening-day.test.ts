@@ -8,6 +8,17 @@ describe("listeningDay", () => {
   });
 });
 
+describe("listeningDay on the days the clocks change", () => {
+  it("matches the database when the clocks go back (1 Nov 2026)", () => {
+    expect(listeningDay("2026-11-01T08:30:00Z")).toBe("2026-10-31"); // 3:30am EST, before 4am
+    expect(listeningDay("2026-11-01T09:30:00Z")).toBe("2026-11-01"); // 4:30am EST
+  });
+  it("matches the database when the clocks go forward (14 Mar 2027)", () => {
+    expect(listeningDay("2027-03-14T08:30:00Z")).toBe("2027-03-14"); // 4:30am EDT
+    expect(listeningDay("2027-03-14T06:30:00Z")).toBe("2027-03-13"); // 1:30am EST
+  });
+});
+
 describe("windowStartDay", () => {
   it("makes a week exactly seven days, however late in the day it is", () => {
     const now = new Date("2026-11-19T23:00:00Z"); // 6pm in New York on the 19th
