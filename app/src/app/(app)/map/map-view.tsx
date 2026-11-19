@@ -1,5 +1,6 @@
 "use client";
 
+import { isDarkNow } from "@/lib/themes";
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -126,7 +127,7 @@ export default function MapView({
       maplibregl.setWorkerUrl("/maplibre-gl-worker.mjs");
       const map = new maplibregl.Map({
         container: container.current,
-        style: window.matchMedia("(prefers-color-scheme: dark)").matches ? MAP_STYLES.dark : MAP_STYLES.light,
+        style: isDarkNow() ? MAP_STYLES.dark : MAP_STYLES.light,
         center: NYU,
         zoom: 13,
         attributionControl: false,
@@ -276,7 +277,7 @@ export default function MapView({
                 onClick={() => focus(p)}
                 className={`flex w-16 flex-col items-center gap-1 text-center ${selectedId === p.userId ? "" : "opacity-80"}`}
               >
-                <span className={`rounded-full p-0.5 ${isLive(p) && p.track ? "bg-green-500" : "bg-foreground/15"}`}>
+                <span className={`rounded-full p-0.5 ${isLive(p) && p.track ? "bg-live" : "bg-foreground/15"}`}>
                   <Avatar handle={p.handle} src={p.avatarUrl} size={48} className="border-2 border-background" />
                 </span>
                 <span className="w-full truncate text-xs">{p.displayName ?? p.handle}</span>
@@ -288,7 +289,7 @@ export default function MapView({
       )}
 
       {ghostMode ? (
-        <Notice>Ghost mode is on. Friends cannot see you. Change it under Me.</Notice>
+        <Notice>Ghost mode is on. Friends cannot see you. Change it in Settings.</Notice>
       ) : !shareLocation ? (
         <LocationOptIn userId={myId} />
       ) : (

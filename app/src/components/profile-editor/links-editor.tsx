@@ -56,10 +56,22 @@ export default function LinksEditor({
             : "Could not save that playlist. Try again.",
       );
     }
-    setLinks((list) => [...list, row].sort((a, b) => a.position - b.position));
+    setLinks((list) => [...list, { ...row, imageUrl: null }].sort((a, b) => a.position - b.position));
     setTitle("");
     setUrl("");
     save.saved();
+    // Ask the server to fetch the playlist's picture from the music service. If that fails
+    // the playlist simply shows without one.
+    const picture = await fetch("/api/profile/links/image", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ position }),
+    })
+      .then((r) => (r.ok ? r.json() : null))
+      .catch(() => null);
+    if (picture?.imageUrl) {
+      setLinks((list) => list.map((l) => (l.position === position ? { ...l, imageUrl: picture.imageUrl } : l)));
+    }
     router.refresh();
   }
 

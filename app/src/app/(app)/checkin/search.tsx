@@ -70,7 +70,7 @@ export default function CheckinSearch() {
         onChange={(e) => setQuery(e.target.value)}
         className="field"
       />
-      {error && <p role="alert" className="text-sm text-red-500">{error}</p>}
+      {error && <p role="alert" className="text-sm text-danger">{error}</p>}
       {status === "searching" && results.length === 0 && <p className="text-sm opacity-60">Searching...</p>}
       <ul className="flex flex-col">
         {results.map((t, i) => (

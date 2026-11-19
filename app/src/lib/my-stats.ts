@@ -68,7 +68,7 @@ export async function getMyStats(supabase: SupabaseClient, userId: string, days:
     activeDays: dayKeys.size,
     topTracks: byPlays(tracks).slice(0, 5),
     topArtists: byPlays(artists).slice(0, 5),
-    recent: rows.slice(0, 8).map((r) => ({
+    recent: rows.slice(0, 3).map((r) => ({
       trackId: r.track!.id,
       title: r.track!.title,
       artist: r.track!.artist,

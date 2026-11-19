@@ -56,14 +56,14 @@ export default function LastfmConnect({
         <p>
           Last.fm connected as <span className="font-semibold">{username}</span>
         </p>
-        <p className={`mt-1 ${status && status !== "ok" ? "text-red-500" : "opacity-60"}`}>
+        <p className={`mt-1 ${status && status !== "ok" ? "text-danger" : "opacity-60"}`}>
           {status ? STATUS_TEXT[status] ?? "" : "We will start reading your plays in a moment."}
           {status === "ok" && syncedAt ? ` Last checked ${ago(syncedAt)}.` : ""}
         </p>
         <button className="mt-1 underline opacity-70" disabled={busy} onClick={() => save(null)}>
           Disconnect
         </button>
-        {error && <p role="alert" className="mt-1 text-red-500">{error}</p>}
+        {error && <p role="alert" className="mt-1 text-danger">{error}</p>}
       </div>
     );
   }
@@ -100,7 +100,7 @@ export default function LastfmConnect({
       <Link href="/connect" className="text-sm underline">
         New to Last.fm? Follow the two-minute setup
       </Link>
-      {error && <p role="alert" className="text-sm text-red-500">{error}</p>}
+      {error && <p role="alert" className="text-sm text-danger">{error}</p>}
     </form>
   );
 }

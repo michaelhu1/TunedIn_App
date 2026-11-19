@@ -20,6 +20,9 @@ import PhotoFramer from "./photo-framer";
 
 type Status = { kind: "idle" } | { kind: "working"; label: string } | { kind: "error"; message: string };
 
+/** GIFs are uploaded untouched, so they have to fit the storage bucket's own limit. */
+const MAX_GIF_BYTES = 2 * 1024 * 1024;
+
 const UNSUPPORTED = "That photo format is not supported here. Try a JPEG or PNG.";
 
 // While positioning, we work from a copy no bigger than this on its long side. A 48-megapixel
@@ -52,6 +55,19 @@ export default function AvatarUpload({
       setStatus({ kind: "error", message: "That file is too large to open here. Pick a different photo." });
       return;
     }
+    // Animated GIFs are kept exactly as they are. Redrawing one on a canvas (which is how
+    // photos are cropped and shrunk) would keep only its first frame. So a GIF skips the
+    // move-and-zoom step, is shown centred in the circle, and must already be small.
+    if (file.type === "image/gif") {
+      if (file.size > MAX_GIF_BYTES) {
+        setStatus({ kind: "error", message: "That GIF is too large. Pick one under 2 MB." });
+        return;
+      }
+      setStatus({ kind: "working", label: "Uploading..." });
+      await upload(file, "gif", "image/gif");
+      return;
+    }
+
     setStatus({ kind: "working", label: "Opening photo..." });
     try {
       setPending(await toWorkingCopy(file));
@@ -80,13 +96,18 @@ export default function AvatarUpload({
       return;
     }
 
+    await upload(blob, "jpg", "image/jpeg");
+  }
+
+  // Store the file, point the profile at it, and tidy up the previous one.
+  async function upload(blob: Blob, extension: "jpg" | "gif", contentType: string) {
     const supabase = createClient();
     const bucket = supabase.storage.from("avatars");
     // A new name every time: the file is cached for a year (cacheControl below), so
     // reusing a name would keep showing the old photo to anyone who had seen it.
-    const path = `${userId}/${Date.now()}.jpg`;
+    const path = `${userId}/${Date.now()}.${extension}`;
     const { error: uploadError } = await bucket.upload(path, blob, {
-      contentType: "image/jpeg",
+      contentType,
       cacheControl: "31536000",
     });
     if (uploadError) {
@@ -153,7 +174,7 @@ export default function AvatarUpload({
           onConfirm={onConfirm}
         />
         {status.kind === "error" && (
-          <p role="alert" className="text-center text-sm text-red-500">
+          <p role="alert" className="text-center text-sm text-danger">
             {status.message}
           </p>
         )}
@@ -191,7 +212,7 @@ export default function AvatarUpload({
         <input
           ref={inputRef}
           type="file"
-          accept="image/jpeg,image/png,image/webp,image/heic"
+          accept="image/jpeg,image/png,image/webp,image/heic,image/gif"
           className="sr-only"
           tabIndex={-1}
           aria-hidden
@@ -206,7 +227,7 @@ export default function AvatarUpload({
           {working ? status.label : ""}
         </p>
         {status.kind === "error" && (
-          <p role="alert" className="text-sm text-red-500">
+          <p role="alert" className="text-sm text-danger">
             {status.message}
           </p>
         )}

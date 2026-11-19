@@ -1,28 +1,150 @@
 @import "tailwindcss";
 
+/* Colour themes.
+ *
+ * Every colour in the app comes from seven variables, so a theme is just a set of seven
+ * values:
+ *   background / foreground   the page and its text (secondary text is the foreground faded
+ *                             to 60-70%, borders to 15-20%; never fade text below 60%)
+ *   surface                   raised panels
+ *   accent / accent-foreground  primary buttons, selected chips, the active tab
+ *   live                      the "listening now" dot
+ *   danger                    errors and destructive actions
+ *
+ * The theme is chosen in the app (Settings) and stored on the device; it sets
+ * data-theme on <html>. With no choice made, the app follows the phone's light or dark
+ * setting. All themes were checked for WCAG contrast: text at least 7:1, faded text and
+ * button labels at least 4.5:1.
+ */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  color-scheme: light;
+  --background: #FFFFFF;
+  --foreground: #141317;
+  --surface: #F6F5F8;
+  --accent: #57068C;
+  --accent-foreground: #FFFFFF;
+  --live: #16A34A;
+  --danger: #C62828;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    color-scheme: dark;
+    --background: #0E0E11;
+    --foreground: #F2F1F5;
+    --surface: #19181D;
+    --accent: #B9A2FF;
+    --accent-foreground: #170A35;
+    --live: #34D399;
+    --danger: #F87171;
+  }
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+  --background: #FFFFFF;
+  --foreground: #141317;
+  --surface: #F6F5F8;
+  --accent: #57068C;
+  --accent-foreground: #FFFFFF;
+  --live: #16A34A;
+  --danger: #C62828;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --background: #0E0E11;
+  --foreground: #F2F1F5;
+  --surface: #19181D;
+  --accent: #B9A2FF;
+  --accent-foreground: #170A35;
+  --live: #34D399;
+  --danger: #F87171;
+}
+
+:root[data-theme="paper"] {
+  color-scheme: light;
+  --background: #F2EBDC;
+  --foreground: #17120B;
+  --surface: #F7F1E4;
+  --accent: #27329F;
+  --accent-foreground: #F7F1E4;
+  --live: #B8390A;
+  --danger: #9B1C26;
+}
+
+:root[data-theme="prussian"] {
+  color-scheme: dark;
+  --background: #0F1E33;
+  --foreground: #F1E6CF;
+  --surface: #17283F;
+  --accent: #E8C547;
+  --accent-foreground: #1A1400;
+  --live: #5FD49A;
+  --danger: #FF8A7A;
+}
+
+:root[data-theme="cobalt"] {
+  color-scheme: dark;
+  --background: #1D3488;
+  --foreground: #F6F0DE;
+  --surface: #243D96;
+  --accent: #F4D23C;
+  --accent-foreground: #14214F;
+  --live: #FF8A5B;
+  --danger: #FFB3A7;
+}
+
+:root[data-theme="mars"] {
+  color-scheme: dark;
+  --background: #1A1420;
+  --foreground: #E6DCCB;
+  --surface: #241C2B;
+  --accent: #E59AA5;
+  --accent-foreground: #1A1420;
+  --live: #6FD3B8;
+  --danger: #FF8F80;
+}
+
+:root[data-theme="hermosa"] {
+  color-scheme: light;
+  --background: #FBEDEE;
+  --foreground: #15111F;
+  --surface: #FFF7F7;
+  --accent: #1F5FA8;
+  --accent-foreground: #FFFFFF;
+  --live: #1E7D45;
+  --danger: #B42318;
+}
+
+:root[data-theme="grenadine"] {
+  color-scheme: dark;
+  --background: #161012;
+  --foreground: #F6EEE6;
+  --surface: #211A1C;
+  --accent: #FF5A3C;
+  --accent-foreground: #1A0500;
+  --live: #4ADE80;
+  --danger: #FF8FA3;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
+  --color-surface: var(--surface);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-live: var(--live);
+  --color-danger: var(--danger);
+  --font-sans: var(--font-text);
   --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  font-family: var(--font-text);
+  font-weight: var(--text-weight);
 }
 
 @layer components {
@@ -30,6 +152,121 @@ body {
     @apply rounded-lg border border-foreground/20 bg-transparent px-3 py-3 text-base outline-none focus-within:border-foreground/60 focus:border-foreground/60;
   }
   .btn {
-    @apply rounded-lg bg-foreground py-3 text-center font-semibold text-background transition disabled:opacity-50;
+    @apply rounded-lg bg-accent py-3 text-center font-semibold text-accent-foreground transition disabled:opacity-50;
   }
+}
+
+/* Font groups (Settings).
+ *
+ * A group restyles the whole app with two typefaces: a display face for page titles and
+ * names (every h1, plus anything given the class "display") and a text face for everything
+ * else. The text faces were all chosen to stay readable at 12-14px and to have even-width
+ * digits for chart columns; the expressive faces are kept to the display slot. Song and
+ * artist names in Korean, Japanese or Chinese fall back to the phone's own font.
+ *
+ * The same variables can be set on any element with data-font-preview, which is how the
+ * picker shows each group in its own typefaces.
+ */
+:root {
+  --sys: system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-text: var(--font-geist-sans), var(--sys);
+  --font-display: var(--font-text);
+  --font-label: var(--font-text);
+  --text-weight: 400;
+  --display-weight: 700;
+  --display-tracking: 0em;
+  --display-scale: 1;
+  --display-transform: none;
+  --display-settings: normal;
+  --label-tracking: 0.025em;
+}
+
+:root[data-font="zine"], [data-font-preview="zine"] {
+  --font-text: var(--font-instrument-sans), var(--sys);
+  --font-display: var(--font-instrument), "Hiragino Mincho ProN", "Songti SC", serif;
+  --display-weight: 400;
+  --display-tracking: -0.01em;
+  --display-scale: 1.18;
+  --label-tracking: 0.1em;
+}
+:root[data-font="literary"], [data-font-preview="literary"] {
+  --font-text: var(--font-literata), "Hiragino Mincho ProN", "Songti SC", Georgia, serif;
+  --font-display: var(--font-instrument), "Hiragino Mincho ProN", "Songti SC", serif;
+  --display-weight: 400;
+  --display-tracking: -0.01em;
+  --display-scale: 1.18;
+  --label-tracking: 0.06em;
+}
+:root[data-font="sleeve"], [data-font-preview="sleeve"] {
+  --font-text: var(--font-instrument-sans), var(--sys);
+  --font-display: var(--font-fraunces), Georgia, serif;
+  --display-weight: 800;
+  --display-tracking: -0.02em;
+  --display-settings: "SOFT" 100;
+}
+:root[data-font="rotation"], [data-font-preview="rotation"] {
+  --font-text: var(--font-archivo), var(--sys);
+  --font-display: var(--font-anton), Impact, var(--sys);
+  --display-weight: 400;
+  --display-tracking: 0.01em;
+  --display-transform: uppercase;
+  --label-tracking: 0.1em;
+}
+:root[data-font="warehouse"], [data-font-preview="warehouse"] {
+  --font-display: var(--font-unbounded), var(--sys);
+  --font-label: var(--font-unbounded), var(--sys);
+  --display-weight: 700;
+  --display-tracking: -0.02em;
+  --display-scale: 0.84;
+  --label-tracking: 0.06em;
+}
+:root[data-font="bedroom"], [data-font-preview="bedroom"] {
+  --font-text: var(--font-figtree), var(--sys);
+  --font-display: var(--font-bricolage), var(--sys);
+  --display-weight: 800;
+  --display-tracking: -0.03em;
+  --label-tracking: 0.08em;
+}
+:root[data-font="terminal"], [data-font-preview="terminal"] {
+  --font-display: var(--font-geist-mono), ui-monospace, monospace;
+  --font-label: var(--font-geist-mono), ui-monospace, monospace;
+  --display-weight: 500;
+  --display-tracking: -0.03em;
+  --display-scale: 0.9;
+  --label-tracking: 0.06em;
+}
+:root[data-font="soft"], [data-font-preview="soft"] {
+  --font-text: var(--font-nunito), var(--sys);
+  --font-display: var(--font-fredoka), var(--sys);
+  /* Nunito is thin at regular weight on dark backgrounds. */
+  --text-weight: 500;
+  --display-weight: 600;
+}
+
+[data-font-preview] {
+  font-family: var(--font-text);
+  font-weight: var(--text-weight);
+}
+
+h1,
+.display {
+  font-family: var(--font-display);
+  font-weight: var(--display-weight);
+  letter-spacing: var(--display-tracking);
+  text-transform: var(--display-transform);
+  font-variation-settings: var(--display-settings);
+  /* Several display faces have one weight; never let the browser fake a bold. */
+  font-synthesis: none;
+  /* Some display faces run small or wide, so the heading sizes are corrected per group. */
+  --text-lg: calc(1.125rem * var(--display-scale));
+  --text-xl: calc(1.25rem * var(--display-scale));
+  --text-2xl: calc(1.5rem * var(--display-scale));
+  --text-3xl: calc(1.875rem * var(--display-scale));
+  --text-4xl: calc(2.25rem * var(--display-scale));
+}
+
+/* The small capital section labels ("PRIVACY", "TOP SONGS"). */
+h2.uppercase {
+  font-family: var(--font-label);
+  letter-spacing: var(--label-tracking);
 }

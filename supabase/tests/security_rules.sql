@@ -477,4 +477,110 @@ savepoint s; select public.admin_stats(); rollback to s;
 reset role;
 \echo '== 79 the admin numbers contain totals only: no emails, handles or ids (expect f)'
 select public.admin_stats()::text ~* '(@nyu\.edu|alice|bob|00000000-0000-0000-0000-00000000000a)' as leaks_identity;
+-- ---------------------------------------------------------------------------
+-- Tester feedback changes (20261120010000_tester_feedback.sql)
+-- ---------------------------------------------------------------------------
+reset role;
+delete from public.blocks where '00000000-0000-0000-0000-00000000000a' in (blocker_id, blocked_id);
+delete from public.friendships where '00000000-0000-0000-0000-00000000000a' in (requester_id, addressee_id);
+insert into public.friendships (requester_id, addressee_id, status, accepted_at) values ('00000000-0000-0000-0000-00000000000a', '00000000-0000-0000-0000-00000000000b', 'accepted', now());
+update public.user_settings set ghost_mode = false where user_id in ('00000000-0000-0000-0000-00000000000a', '00000000-0000-0000-0000-00000000000b');
+update public.profiles set show_stats = true where id in ('00000000-0000-0000-0000-00000000000a', '00000000-0000-0000-0000-00000000000b');
+delete from public.profile_links where user_id = '00000000-0000-0000-0000-00000000000b';
+set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-0000-0000-00000000000b","role":"authenticated"}', true);
+\echo '== 80 five genres are accepted (1); six are refused (ERROR)'
+with u as (update public.profiles set genres = array['pop','rock','jazz','soul','indie'] where id = '00000000-0000-0000-0000-00000000000b' returning 1) select count(*) as saved from u;
+savepoint s; update public.profiles set genres = array['pop','rock','jazz','soul','indie','folk'] where id = '00000000-0000-0000-0000-00000000000b'; rollback to s;
+\echo '== 81 B adds a playlist link (1) but cannot set its picture, on insert or later (ERROR, ERROR)'
+with i as (insert into public.profile_links (user_id, position, title, url) values ('00000000-0000-0000-0000-00000000000b', 1, 'Mix', 'https://open.spotify.com/playlist/abc') returning 1) select count(*) as added from i;
+savepoint s; insert into public.profile_links (user_id, position, title, url, image_url) values ('00000000-0000-0000-0000-00000000000b', 2, 'Mix 2', 'https://open.spotify.com/playlist/def', 'https://i.scdn.co/image/x'); rollback to s;
+savepoint s; update public.profile_links set image_url = 'https://i.scdn.co/image/x' where user_id = '00000000-0000-0000-0000-00000000000b'; rollback to s;
+reset role;
+\echo '== 82 even the server cannot store a picture hosted somewhere unknown (ERROR)'
+savepoint s; update public.profile_links set image_url = 'https://evil.example/pixel.gif' where user_id = '00000000-0000-0000-0000-00000000000b'; rollback to s;
+set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-0000-0000-00000000000b","role":"authenticated"}', true);
+\echo '== 83 friends leaderboard: friend A is listed and B is marked as me (alice 1, me 1)'
+select count(*) filter (where handle = 'alice') as alice_rows, count(*) filter (where is_me) as me_rows from public.chart_friends_top_listeners(7, 50);
+reset role; update public.profiles set show_stats = false where id = '00000000-0000-0000-0000-00000000000a';
+set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-0000-0000-00000000000b","role":"authenticated"}', true);
+\echo '== 84 A hides stats: A leaves the leaderboard (alice 0, me 1)'
+select count(*) filter (where handle = 'alice') as alice_rows, count(*) filter (where is_me) as me_rows from public.chart_friends_top_listeners(7, 50);
+set local role anon;
+\echo '== 85 anon: chart_friends_top_listeners (ERROR)'
+savepoint s; select * from public.chart_friends_top_listeners(); rollback to s;
+reset role;
+-- Friend moments and "felt this". A and B are friends; C is a stranger. A shows the test song today.
+update public.profiles set show_stats = true where id in ('00000000-0000-0000-0000-00000000000a', '00000000-0000-0000-0000-00000000000b');
+delete from public.song_reactions;
+delete from public.plays where track_id = '00000000-0000-0000-0000-0000000000aa';
+insert into public.presence (user_id, track_id, updated_at, expires_at) values ('00000000-0000-0000-0000-00000000000a', '00000000-0000-0000-0000-0000000000aa', now(), now() + interval '1 hour')
+  on conflict (user_id) do update set track_id = excluded.track_id, updated_at = now(), expires_at = excluded.expires_at;
+insert into public.plays (user_id, track_id, played_at, source) values ('00000000-0000-0000-0000-00000000000a', '00000000-0000-0000-0000-0000000000aa', now(), 'checkin'), ('00000000-0000-0000-0000-00000000000b', '00000000-0000-0000-0000-0000000000aa', now(), 'checkin'), ('00000000-0000-0000-0000-00000000000c', '00000000-0000-0000-0000-0000000000aa', now(), 'checkin');
+update public.user_settings set ghost_mode = false where user_id in ('00000000-0000-0000-0000-00000000000a', '00000000-0000-0000-0000-00000000000b', '00000000-0000-0000-0000-00000000000c');
+set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-0000-0000-00000000000b","role":"authenticated"}', true);
+\echo '== 86 same song today: B sees friend A only, never stranger C (alice t, others 0)'
+select coalesce(bool_or(friend_id = '00000000-0000-0000-0000-00000000000a'), false) as alice, count(*) filter (where friend_id <> '00000000-0000-0000-0000-00000000000a') as others from public.friend_same_songs_today();
+\echo '== 87 B feels A song (t); a song A is not showing (f); stranger C cannot react to A (f)'
+select public.felt_this('00000000-0000-0000-0000-00000000000a', '00000000-0000-0000-0000-0000000000aa') as ok;
+select public.felt_this('00000000-0000-0000-0000-00000000000a', '00000000-0000-0000-0000-0000000000c1') as other_song;
+set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-0000-0000-00000000000c","role":"authenticated"}', true);
+select public.felt_this('00000000-0000-0000-0000-00000000000a', '00000000-0000-0000-0000-0000000000aa') as stranger;
+\echo '== 88 C cannot read the reaction between A and B (0); A, the receiver, can (1)'
+select count(*) as visible_to_c from public.song_reactions;
+set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-0000-0000-00000000000a","role":"authenticated"}', true);
+select count(*) as visible_to_a from public.song_reactions;
+set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-0000-0000-00000000000b","role":"authenticated"}', true);
+\echo '== 89 a reaction cannot be written or redirected directly (ERROR, ERROR)'
+savepoint s; insert into public.song_reactions (sender_id, receiver_id, track_id, day) values ('00000000-0000-0000-0000-00000000000b', '00000000-0000-0000-0000-00000000000c', '00000000-0000-0000-0000-0000000000aa', current_date); rollback to s;
+savepoint s; update public.song_reactions set receiver_id = '00000000-0000-0000-0000-00000000000c' where sender_id = '00000000-0000-0000-0000-00000000000b'; rollback to s;
+reset role; update public.user_settings set ghost_mode = true where user_id = '00000000-0000-0000-0000-00000000000a';
+set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-0000-0000-00000000000b","role":"authenticated"}', true);
+\echo '== 90 A goes ghost: no shared-song moment, no overlap row, and no new reaction (0, 0, f)'
+select count(*) as same_songs from public.friend_same_songs_today();
+select count(*) as overlap_rows from public.friend_overlap();
+select public.felt_this('00000000-0000-0000-0000-00000000000a', '00000000-0000-0000-0000-0000000000aa') as ok;
+set local role anon;
+\echo '== 91 anon: friend_same_songs_today, friend_overlap, felt_this (ERROR x3)'
+savepoint s; select * from public.friend_same_songs_today(); rollback to s;
+savepoint s; select * from public.friend_overlap(); rollback to s;
+savepoint s; select public.felt_this('00000000-0000-0000-0000-00000000000a', '00000000-0000-0000-0000-0000000000aa'); rollback to s;
+reset role;
+update public.user_settings set ghost_mode = false where user_id in ('00000000-0000-0000-0000-00000000000a', '00000000-0000-0000-0000-00000000000b');
+update public.profiles set show_stats = false where id = '00000000-0000-0000-0000-00000000000a';
+set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-0000-0000-00000000000b","role":"authenticated"}', true);
+\echo '== 92 A hides stats: B gets no shared-song moment and no overlap number for A (0, 0)'
+select count(*) as same_songs from public.friend_same_songs_today();
+select count(*) as overlap_rows from public.friend_overlap();
+reset role; update public.profiles set show_stats = true where id = '00000000-0000-0000-0000-00000000000a'; update public.user_settings set ghost_mode = true where user_id = '00000000-0000-0000-0000-00000000000b';
+set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-0000-0000-00000000000b","role":"authenticated"}', true);
+\echo '== 93 B in ghost mode cannot send a reaction (f)'
+select public.felt_this('00000000-0000-0000-0000-00000000000a', '00000000-0000-0000-0000-0000000000aa') as ok;
+reset role; update public.user_settings set ghost_mode = false where user_id = '00000000-0000-0000-0000-00000000000b';
+delete from public.song_reactions;
+set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-0000-0000-00000000000b","role":"authenticated"}', true);
+select public.felt_this('00000000-0000-0000-0000-00000000000a', '00000000-0000-0000-0000-0000000000aa') as sent;
+reset role;
+\echo '== 94 unfriending removes the reactions between the two (1 before, 0 after)'
+select count(*) as before from public.song_reactions;
+delete from public.friendships where '00000000-0000-0000-0000-00000000000a' in (requester_id, addressee_id) and '00000000-0000-0000-0000-00000000000b' in (requester_id, addressee_id);
+select count(*) as after from public.song_reactions;
+\echo '== 95 changing a playlist link address clears its old picture (t)'
+delete from public.profile_links where user_id = '00000000-0000-0000-0000-00000000000b';
+insert into public.profile_links (user_id, position, title, url, image_url) values ('00000000-0000-0000-0000-00000000000b', 1, 'Mix', 'https://open.spotify.com/playlist/abc', 'https://i.scdn.co/image/x');
+set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-0000-0000-00000000000b","role":"authenticated"}', true);
+update public.profile_links set url = 'https://open.spotify.com/playlist/zzz' where user_id = '00000000-0000-0000-0000-00000000000b';
+reset role;
+select image_url is null as cleared from public.profile_links where user_id = '00000000-0000-0000-0000-00000000000b';
 rollback;

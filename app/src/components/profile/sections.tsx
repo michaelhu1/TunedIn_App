@@ -18,23 +18,10 @@ function Heading({ children }: { children: React.ReactNode }) {
   return <h2 className="mb-2 text-xs uppercase tracking-wide opacity-60">{children}</h2>;
 }
 
-/** A row of non-interactive tags. A list, so screen readers announce how many there are. */
-function Pills({ items, label }: { items: string[]; label: string }) {
-  return (
-    <ul aria-label={label} className="flex flex-wrap gap-2">
-      {items.map((item) => (
-        <li key={item} className="rounded-full border border-foreground/20 px-3 py-1 text-sm">
-          {item}
-        </li>
-      ))}
-    </ul>
-  );
-}
-
 export function TasteMatchCard({ match }: { match: TasteMatch }) {
   const shared = sharedArtistsSentence(match.sharedArtists, match.sharedCount);
   return (
-    <section aria-labelledby="taste-match-heading" className="rounded-xl border border-foreground/15 p-4">
+    <section aria-labelledby="taste-match-heading" className="scroll-mt-6 rounded-xl border border-foreground/15 p-4">
       <h2 id="taste-match-heading" className="mb-1 text-xs uppercase tracking-wide opacity-60">
         Your taste match
       </h2>
@@ -53,14 +40,56 @@ export function TasteMatchCard({ match }: { match: TasteMatch }) {
   );
 }
 
-export function OpenTo({ keys }: { keys: FullProfile["openTo"] }) {
-  const labels = labelsFor(keys, OPEN_TO);
-  if (labels.length === 0) return null;
+/** What they listen to and what they are up for, as two rows of tags straight under the
+ *  bio. There are no visible headings: the two rows are told apart by how they look (filled
+ *  genre tags, outlined "open to" tags after a small label), and each list still carries a
+ *  name for screen readers. */
+export function TasteTags({ genres, openTo }: { genres: string[]; openTo: FullProfile["openTo"] }) {
+  const genreTags = knownGenres(genres);
+  const openLabels = labelsFor(openTo, OPEN_TO);
+  if (genreTags.length === 0 && openLabels.length === 0) return null;
   return (
-    <section>
-      <Heading>Open to</Heading>
-      <Pills items={labels} label="Open to" />
+    <section aria-label="Music taste" className="flex flex-col gap-2.5">
+      {genreTags.length > 0 && (
+        <ul aria-label="Genres" className="flex flex-wrap gap-2">
+          {genreTags.map((g) => (
+            <li key={g} className="rounded-full bg-accent px-3 py-1 text-sm font-medium text-accent-foreground">
+              {g}
+            </li>
+          ))}
+        </ul>
+      )}
+      {openLabels.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2">
+          <span id="open-to-label" className="text-xs opacity-70">
+            Open to
+          </span>
+          <ul aria-labelledby="open-to-label" className="contents">
+            {openLabels.map((o) => (
+              <li key={o} className="rounded-full border border-foreground/15 bg-surface px-3 py-1 text-sm">
+                {o}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </section>
+  );
+}
+
+/** "🎸 Guitar · Write songs · In a band — bass in a jazz trio": one line in the header,
+ *  beside major and hometown, because making music is who someone is rather than a tag. */
+export function MakesMusicLine({ roles, note }: { roles: FullProfile["musicRoles"]; note: string | null }) {
+  const roleLabels = labelsFor(roles, MUSIC_ROLES);
+  // The note explains the roles, so it only shows alongside them.
+  if (roleLabels.length === 0) return null;
+  return (
+    <p className="line-clamp-2 break-words text-sm opacity-70">
+      <span aria-hidden className="mr-1">🎸</span>
+      <span className="sr-only">Makes music: </span>
+      {roleLabels.join(" · ")}
+      {note && <> — {note}</>}
+    </p>
   );
 }
 
@@ -76,36 +105,29 @@ export function Prompt({ prompt }: { prompt: NonNullable<FullProfile["prompt"]> 
   );
 }
 
-/** Favourite artists, with the ones the viewer also picked called out. */
+/** Favourite artists. The ones the viewer also picked come first and are filled in. */
 export function FavoriteArtists({ artists, sharedWithViewer }: { artists: string[]; sharedWithViewer: string[] }) {
   if (artists.length === 0) return null;
+  const shared = new Set(sharedWithViewer.map((a) => a.toLowerCase()));
+  const ordered = [...artists.filter((a) => shared.has(a.toLowerCase())), ...artists.filter((a) => !shared.has(a.toLowerCase()))];
   return (
     <section className="flex flex-col gap-2">
       <Heading>Favourite artists</Heading>
-      <Pills items={artists} label="Favourite artists" />
-      {sharedWithViewer.length > 0 && (
-        <p className="text-sm opacity-80">You both like {joinNames(sharedWithViewer)}.</p>
-      )}
-    </section>
-  );
-}
-
-export function TheirSound({ genres, roles, note }: { genres: string[]; roles: FullProfile["musicRoles"]; note: string | null }) {
-  const genreTags = knownGenres(genres);
-  const roleLabels = labelsFor(roles, MUSIC_ROLES);
-  // The note explains the roles ("bass in a jazz trio"), so it only shows alongside them.
-  if (genreTags.length === 0 && roleLabels.length === 0) return null;
-  return (
-    <section className="flex flex-col gap-3">
-      <Heading>Their sound</Heading>
-      {genreTags.length > 0 && <Pills items={genreTags} label="Genres" />}
-      {roleLabels.length > 0 && (
-        <div className="flex flex-col gap-2">
-          <h3 className="text-sm font-medium">Makes music</h3>
-          <Pills items={roleLabels} label="Makes music" />
-          {note && <p className="break-words text-sm opacity-70">{note}</p>}
-        </div>
-      )}
+      <ul aria-label="Favourite artists" className="flex flex-wrap gap-2">
+        {ordered.map((a) =>
+          shared.has(a.toLowerCase()) ? (
+            <li key={a} className="rounded-full bg-accent px-3 py-1 text-sm font-medium text-accent-foreground">
+              {a}
+              <span className="sr-only"> (you both like)</span>
+            </li>
+          ) : (
+            <li key={a} className="rounded-full border border-foreground/20 px-3 py-1 text-sm">
+              {a}
+            </li>
+          ),
+        )}
+      </ul>
+      {sharedWithViewer.length > 0 && <p className="text-sm opacity-80">You both like {joinNames(sharedWithViewer)}.</p>}
     </section>
   );
 }
@@ -157,52 +179,91 @@ function ConcertGroup({ title, concerts, today, children }: { title: string; con
   );
 }
 
-export function Instagram({ handle }: { handle: string | null }) {
+/** A small square Instagram button for the row of actions under the bio. */
+export function InstagramButton({ handle }: { handle: string | null }) {
   const url = instagramUrl(handle);
   if (!url) return null;
   return (
-    <section aria-label="Instagram">
-      <a
-        href={url}
-        target="_blank"
-        rel="noreferrer noopener" // same reasoning as the playlist links
-        className="flex items-center gap-3 rounded-xl border border-foreground/15 px-4 py-3"
-      >
-        <span className="min-w-0 flex-1 truncate font-medium">@{handle} on Instagram</span>
-        <span aria-hidden className="opacity-60">↗</span>
-        <span className="sr-only">(opens Instagram in a new tab)</span>
-      </a>
-    </section>
+    <a
+      href={url}
+      target="_blank"
+      rel="noreferrer noopener" // same reasoning as the playlist links
+      aria-label={`@${handle} on Instagram (opens in a new tab)`}
+      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-foreground/20 hover:bg-foreground/5"
+    >
+      <svg aria-hidden width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="3" width="18" height="18" rx="5" />
+        <circle cx="12" cy="12" r="4" />
+        <circle cx="17.5" cy="6.5" r="0.6" fill="currentColor" />
+      </svg>
+    </a>
   );
 }
 
-export function NowPlaying({ track }: { track: NonNullable<FullProfile["nowPlaying"]> }) {
+/** What they are playing, as one line in the header: status, not a section of its own. */
+export function NowPlayingLine({ track }: { track: NonNullable<FullProfile["nowPlaying"]> }) {
   // Server time at render. The page is rendered per request (it reads cookies), so this is fresh.
   const live = Date.now() - new Date(track.updatedAt).getTime() < LIVE_MINUTES * 60_000;
   return (
-    <section aria-label="Now playing" className="rounded-xl border border-foreground/15 p-4">
-      <p className="mb-2 text-xs uppercase tracking-wide opacity-60">
-        {live ? <><span className="text-green-500" aria-hidden>●</span> Live now</> : "Earlier today"}
+    <section aria-label="Now playing" className="flex items-center gap-2.5 rounded-full bg-surface py-1 pl-1 pr-1.5">
+      <Cover src={track.artworkUrl} size={32} className="rounded-full" />
+      <p className="min-w-0 flex-1 truncate text-sm">
+        {live ? (
+          <>
+            <span className="text-live" aria-hidden>● </span>
+            <span className="sr-only">Listening now: </span>
+          </>
+        ) : (
+          <span className="opacity-70">Earlier: </span>
+        )}
+        <span className="font-medium">{track.title}</span>
+        <span className="opacity-70"> · {track.artist}</span>
       </p>
-      <div className="flex items-center gap-3">
-        <Cover src={track.artworkUrl} size={56} />
-        <div className="min-w-0 flex-1">
-          <p className="truncate font-semibold">{track.title}</p>
-          <p className="truncate text-sm opacity-70">{track.artist}</p>
-        </div>
-        <PreviewButton trackId={track.trackId} />
-        <OpenInSpotify trackId={track.trackId} compact />
-      </div>
+      <PreviewButton trackId={track.trackId} className="scale-75" />
     </section>
   );
 }
 
+/** The taste match as a small badge beside the name; the full card explains it lower down. */
+export function MatchBadge({ score }: { score: number }) {
+  return (
+    <a href="#taste-match-heading" className="shrink-0 rounded-full bg-accent px-2 py-0.5 text-xs font-semibold tabular-nums text-accent-foreground">
+      {score}% <span className="sr-only">taste </span>match
+    </a>
+  );
+}
+
+// Layout rule used by the sections below: the number of items decides the layout, so a
+// section always fills its width. One item gets a wide card, two or three share a row,
+// four make a 2x2 block. No half-empty grids.
+const FILL_COLUMNS: Record<number, string> = { 2: "grid-cols-2", 3: "grid-cols-3", 4: "grid-cols-2" };
+
 export function Favorites({ favorites }: { favorites: FullProfile["favorites"] }) {
+  if (favorites.length === 1) {
+    const f = favorites[0];
+    return (
+      <section>
+        <Heading>On repeat</Heading>
+        <div className="flex items-center gap-4 rounded-xl border border-foreground/15 p-3">
+          {f.artworkUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={f.artworkUrl} alt="" loading="lazy" className="h-28 w-28 shrink-0 rounded-lg object-cover" />
+          ) : (
+            <div className="h-28 w-28 shrink-0 rounded-lg bg-foreground/10" />
+          )}
+          <div className="min-w-0 flex-1">
+            <p className="line-clamp-2 text-lg font-semibold leading-tight">{f.title}</p>
+            <p className="mt-1 truncate text-sm opacity-70">{f.artist}</p>
+            <PreviewButton trackId={f.trackId} className="mt-3" />
+          </div>
+        </div>
+      </section>
+    );
+  }
   return (
     <section>
-      <Heading>On repeat right now</Heading>
-      {/* Two across fits a phone; with at most four songs that is a 2x2 grid. */}
-      <ul className="grid grid-cols-2 gap-3">
+      <Heading>On repeat</Heading>
+      <ul className={`grid gap-3 ${FILL_COLUMNS[favorites.length] ?? "grid-cols-2"}`}>
         {favorites.map((f) => (
           <li key={f.trackId} className="min-w-0">
             <div className="relative">
@@ -224,76 +285,114 @@ export function Favorites({ favorites }: { favorites: FullProfile["favorites"] }
   );
 }
 
+/** A playlist's picture, or a tile with the service's initial when it has none. */
+function PlaylistArt({ src, service, className }: { src: string | null; service: string; className: string }) {
+  return src ? (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src={src} alt="" loading="lazy" className={`${className} rounded-lg object-cover`} />
+  ) : (
+    <span aria-hidden className={`${className} flex items-center justify-center rounded-lg bg-foreground/10 text-xl font-bold opacity-70`}>
+      {service.slice(0, 1)}
+    </span>
+  );
+}
+
 export function Playlists({ links }: { links: FullProfile["links"] }) {
   const usable = links.flatMap((l) => {
     const service = serviceName(l.url);
     return service ? [{ ...l, service }] : [];
   });
   if (usable.length === 0) return null;
+  // noopener: the new tab cannot reach back into this page. noreferrer: the music service
+  // is not told which profile the click came from.
+  const linkProps = { target: "_blank", rel: "noreferrer noopener" } as const;
+
   return (
     <section>
       <Heading>Playlists</Heading>
-      <ul className="flex flex-col gap-2">
-        {usable.map((l) => (
-          <li key={l.position}>
-            <a
-              href={l.url}
-              target="_blank"
-              // noopener: the new tab cannot reach back into this page. noreferrer: the music
-              // service is not told which profile the click came from.
-              rel="noreferrer noopener"
-              className="flex items-center gap-3 rounded-xl border border-foreground/15 px-4 py-3"
-            >
-              <span className="min-w-0 flex-1">
-                <span className="block truncate font-medium">{l.title}</span>
-                <span className="block text-xs opacity-60">{l.service}</span>
-              </span>
-              <span aria-hidden className="opacity-60">↗</span>
-              <span className="sr-only">(opens {l.service} in a new tab)</span>
-            </a>
-          </li>
-        ))}
-      </ul>
+      {usable.length === 1 ? (
+        <a href={usable[0].url} {...linkProps} className="flex items-center gap-4 rounded-xl border border-foreground/15 p-3">
+          <PlaylistArt src={usable[0].imageUrl} service={usable[0].service} className="h-24 w-24 shrink-0" />
+          <span className="min-w-0 flex-1">
+            <span className="line-clamp-2 block text-lg font-semibold leading-tight">{usable[0].title}</span>
+            <span className="mt-1 block text-sm opacity-60">{usable[0].service} ↗</span>
+            <span className="sr-only">(opens {usable[0].service} in a new tab)</span>
+          </span>
+        </a>
+      ) : (
+        <ul className={`grid gap-3 ${FILL_COLUMNS[usable.length] ?? "grid-cols-2"}`}>
+          {usable.map((l) => (
+            <li key={l.position} className="min-w-0">
+              <a href={l.url} {...linkProps} className="block">
+                <PlaylistArt src={l.imageUrl} service={l.service} className="aspect-square w-full" />
+                <span className="mt-1.5 block truncate text-sm font-medium">{l.title}</span>
+                <span className="block text-xs opacity-60">{l.service} ↗</span>
+                <span className="sr-only">(opens {l.service} in a new tab)</span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
+// The top lists are the wordiest part of a profile, so they open with three rows and keep
+// the rest behind "Show all" (a <details>, which needs no JavaScript).
+const TOP_SHOWN = 3;
+
+function TopList<T>({ title, items, row }: { title: string; items: T[]; row: (item: T, index: number) => React.ReactNode }) {
+  const rest = items.slice(TOP_SHOWN);
+  return (
+    <section>
+      <Heading>{title}</Heading>
+      <ol className="flex flex-col">{items.slice(0, TOP_SHOWN).map(row)}</ol>
+      {rest.length > 0 && (
+        <details className="group">
+          <summary className="cursor-pointer py-1 text-sm underline opacity-70 group-open:hidden">Show all {items.length}</summary>
+          <ol start={TOP_SHOWN + 1} className="flex flex-col">
+            {rest.map((item, i) => row(item, i + TOP_SHOWN))}
+          </ol>
+        </details>
+      )}
     </section>
   );
 }
 
 export function TopSongs({ tracks }: { tracks: FullProfile["topTracks"] }) {
   return (
-    <section>
-      <Heading>Top songs · last 90 days</Heading>
-      <ol className="flex flex-col">
-        {tracks.map((t, i) => (
-          <li key={t.trackId} className="flex items-center gap-3 py-2">
-            <span className="w-4 text-right text-sm tabular-nums opacity-60">{i + 1}</span>
-            <Cover src={t.artworkUrl} size={44} />
-            <div className="min-w-0 flex-1">
-              <p className="truncate font-medium">{t.title}</p>
-              <p className="truncate text-sm opacity-70">{t.artist} · {plural(t.plays, "play")}</p>
-            </div>
-            <PreviewButton trackId={t.trackId} />
-            <OpenInSpotify trackId={t.trackId} compact />
-          </li>
-        ))}
-      </ol>
-    </section>
+    <TopList
+      title="Top songs · last 90 days"
+      items={tracks}
+      row={(t, i) => (
+        <li key={t.trackId} className="flex items-center gap-3 py-2">
+          <span className="w-4 text-right text-sm tabular-nums opacity-60">{i + 1}</span>
+          <Cover src={t.artworkUrl} size={44} />
+          <div className="min-w-0 flex-1">
+            <p className="truncate font-medium">{t.title}</p>
+            <p className="truncate text-sm opacity-70">{t.artist} · {plural(t.plays, "play")}</p>
+          </div>
+          <PreviewButton trackId={t.trackId} />
+          <OpenInSpotify trackId={t.trackId} compact />
+        </li>
+      )}
+    />
   );
 }
 
 export function TopArtists({ artists }: { artists: FullProfile["topArtists"] }) {
   return (
-    <section>
-      <Heading>Top artists · last 90 days</Heading>
-      <ol className="flex flex-col">
-        {artists.map((a, i) => (
-          <li key={a.artist} className="flex items-center gap-3 py-2">
-            <span className="w-4 text-right text-sm tabular-nums opacity-60">{i + 1}</span>
-            <Cover src={a.artworkUrl} size={44} className="rounded-full" />
-            <p className="min-w-0 flex-1 truncate font-medium">{a.artist}</p>
-            <span className="whitespace-nowrap text-xs opacity-60">{plural(a.plays, "play")}</span>
-          </li>
-        ))}
-      </ol>
-    </section>
+    <TopList
+      title="Top artists · last 90 days"
+      items={artists}
+      row={(a, i) => (
+        <li key={a.artist} className="flex items-center gap-3 py-2">
+          <span className="w-4 text-right text-sm tabular-nums opacity-60">{i + 1}</span>
+          <Cover src={a.artworkUrl} size={44} className="rounded-full" />
+          <p className="min-w-0 flex-1 truncate font-medium">{a.artist}</p>
+          <span className="whitespace-nowrap text-xs opacity-60">{plural(a.plays, "play")}</span>
+        </li>
+      )}
+    />
   );
 }

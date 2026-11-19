@@ -1,5 +1,6 @@
 "use client";
 
+import { isDarkNow } from "@/lib/themes";
 import { useEffect, useRef, useState } from "react";
 import type { GeoJSONSource, Map as MapLibreMap, Marker } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
@@ -49,7 +50,7 @@ export default function PublicMapView({ areas, minPeople }: { areas: Area[]; min
       maplibregl.setWorkerUrl("/maplibre-gl-worker.mjs");
       const map = new maplibregl.Map({
         container: container.current,
-        style: window.matchMedia("(prefers-color-scheme: dark)").matches ? MAP_STYLES.dark : MAP_STYLES.light,
+        style: isDarkNow() ? MAP_STYLES.dark : MAP_STYLES.light,
         center: NYU,
         zoom: 13,
         attributionControl: false,

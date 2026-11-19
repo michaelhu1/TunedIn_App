@@ -15,6 +15,7 @@ export type FriendRow = {
   handle: string;
   school: string;
   avatar_url?: string | null;
+  display_name?: string | null;
 };
 
 // All friend actions go straight from the browser to the database. The row-level security
@@ -31,7 +32,12 @@ export default function FriendsManager({ me, myHandle, rows }: { me: string; myH
 
   const incoming = rows.filter((r) => r.status === "pending" && !r.sent_by_me);
   const outgoing = rows.filter((r) => r.status === "pending" && r.sent_by_me);
-  const friends = rows.filter((r) => r.status === "accepted");
+  // Your people, in the order the page was given (most listening in common first), narrowed
+  // by the search box once the list is long enough to need one.
+  const [search, setSearch] = useState("");
+  const allFriends = rows.filter((r) => r.status === "accepted");
+  const needle = search.trim().toLowerCase().replace(/^@/, "");
+  const friends = needle ? allFriends.filter((r) => r.handle.includes(needle) || (r.display_name ?? "").toLowerCase().includes(needle)) : allFriends;
 
   async function run(action: () => Promise<string | null>, okText?: string) {
     setBusy(true);
@@ -118,21 +124,35 @@ export default function FriendsManager({ me, myHandle, rows }: { me: string; myH
           <span className="text-xs opacity-60">Sends your link. Anyone who joins with it asks to be your friend.</span>
         </div>
         {message && (
-          <p role={message.kind === "error" ? "alert" : "status"} className={`text-sm ${message.kind === "error" ? "text-red-500" : "opacity-80"}`}>
+          <p role={message.kind === "error" ? "alert" : "status"} className={`text-sm ${message.kind === "error" ? "text-danger" : "opacity-80"}`}>
             {message.text}
           </p>
         )}
       </form>
 
-      <Section title={`Friends (${friends.length})`}>
-        {friends.length === 0 && (
+      <Section title={`Friends (${allFriends.length})`}>
+        {allFriends.length === 0 && (
           <p className="text-sm opacity-60">No friends yet. Add someone above and their music shows up on Home and the map.</p>
         )}
+        {allFriends.length > 8 && (
+          <input
+            type="search"
+            aria-label="Search your friends"
+            placeholder="Search your friends"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="field mb-2 w-full py-2 text-sm"
+          />
+        )}
+        {needle && friends.length === 0 && <p className="text-sm opacity-60">Nobody matches “{search.trim()}”.</p>}
         {friends.map((r) => (
           <Row key={r.friend_id} row={r}>
             {confirming === r.friend_id ? (
               <>
-                <button disabled={busy} onClick={() => remove(r.friend_id)} className="text-sm font-semibold text-red-500 underline">
+                <button disabled={busy} onClick={() => remove(r.friend_id)} className="text-sm font-semibold text-danger underline">
                   Remove
                 </button>
                 <button disabled={busy} onClick={() => setConfirming(null)} className="text-sm underline opacity-60">
@@ -160,8 +180,8 @@ export default function FriendsManager({ me, myHandle, rows }: { me: string; myH
       <p className="text-sm opacity-60">
         To block or report someone, open their profile and scroll to the bottom. People you have blocked are
         listed under{" "}
-        <Link href="/me#blocked" className="underline">
-          Me
+        <Link href="/settings#blocked" className="underline">
+          Settings
         </Link>
         .
       </p>
@@ -185,8 +205,8 @@ function Row({ row, children }: { row: FriendRow; children: React.ReactNode }) {
         <Avatar handle={row.handle} src={row.avatar_url} size={36} />
       </Link>
       <p className="min-w-0 flex-1 truncate">
-        <Link href={"/u/" + row.handle} className="font-medium hover:underline">@{row.handle}</Link>
-        <span className="opacity-60"> · {row.school}</span>
+        <Link href={"/u/" + row.handle} className="font-medium hover:underline">{row.display_name ?? `@${row.handle}`}</Link>
+        <span className="opacity-60">{row.display_name ? ` · @${row.handle}` : ""} · {row.school}</span>
       </p>
       {children}
     </li>

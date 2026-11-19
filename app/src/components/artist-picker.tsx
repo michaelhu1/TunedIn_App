@@ -95,7 +95,7 @@ export default function ArtistPicker({
                 type="button"
                 onClick={() => toggle(name)}
                 aria-label={`Remove ${name}`}
-                className="rounded-full bg-foreground px-3 py-1.5 text-sm font-semibold text-background"
+                className="rounded-full bg-accent px-3 py-1.5 text-sm font-semibold text-accent-foreground"
               >
                 {name} ×
               </button>
@@ -151,7 +151,7 @@ export default function ArtistPicker({
         {busy ? "Saving..." : doneLabel}
       </button>
       {message && (
-        <p role={message.kind === "error" ? "alert" : "status"} className={`text-sm ${message.kind === "error" ? "text-red-500" : "opacity-70"}`}>
+        <p role={message.kind === "error" ? "alert" : "status"} className={`text-sm ${message.kind === "error" ? "text-danger" : "opacity-70"}`}>
           {message.text}
         </p>
       )}

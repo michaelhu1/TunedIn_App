@@ -47,5 +47,11 @@ export type FriendTrackRow = TrackRow & { handles: string[] };
 export type FriendArtistRow = ArtistRow & { handles: string[] };
 export const getFriendsTopTracks = (s: SupabaseClient, days = 7, limit = 20) =>
   rpc<FriendTrackRow>(s, "chart_friends_top_tracks", { p_days: days, p_limit: limit });
+export type FriendListenerRow = {
+  rank: number; handle: string; display_name: string | null; avatar_url: string | null;
+  plays: number; songs: number; is_me: boolean;
+};
+export const getFriendsLeaderboard = (s: SupabaseClient, days = 7, limit = 25) =>
+  rpc<FriendListenerRow>(s, "chart_friends_top_listeners", { p_days: days, p_limit: limit });
 export const getFriendsTopArtists = (s: SupabaseClient, days = 7, limit = 5) =>
   rpc<FriendArtistRow>(s, "chart_friends_top_artists", { p_days: days, p_limit: limit });

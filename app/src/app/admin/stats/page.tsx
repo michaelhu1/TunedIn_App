@@ -118,7 +118,7 @@ export default async function AdminStatsPage() {
       </section>
 
       {t.open_reports > 0 && (
-        <p className="rounded-xl border border-red-500/40 p-4 text-sm">
+        <p className="rounded-xl border border-danger/40 p-4 text-sm">
           <span className="font-semibold">{t.open_reports} open report{t.open_reports === 1 ? "" : "s"}.</span> Review them in the
           reports table in the Supabase dashboard.
         </p>

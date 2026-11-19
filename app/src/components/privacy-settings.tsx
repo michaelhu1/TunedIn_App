@@ -66,7 +66,7 @@ export default function PrivacySettings({
           save({ ghost_mode: v });
         }}
       />
-      {error && <p role="alert" className="text-sm text-red-500">{error}</p>}
+      {error && <p role="alert" className="text-sm text-danger">{error}</p>}
     </div>
   );
 }

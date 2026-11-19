@@ -25,7 +25,7 @@ export const GENRES = [
   "jazz", "soul", "classical", "country", "folk", "metal", "punk", "emo", "lo-fi",
   "ambient", "musical theatre",
 ] as const;
-export const MAX_GENRES = 3;
+export const MAX_GENRES = 5;
 
 export const OPEN_TO = {
   concert_buddies: "Concert buddies",

@@ -3,10 +3,11 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
-type Check = { kind: "found"; imported: number; nowPlaying: boolean } | { kind: "empty" } | { kind: "private" } | { kind: "error" };
-
-// Step 1: connect Last.fm (one button; signs in on last.fm, no username to type).
-// Step 2: link Spotify inside Last.fm (one link straight to the right page), then check.
+// Connecting Spotify, in two plain steps:
+//   1. Connect Last.fm (one button; you sign in on last.fm and come back).
+//   2. Inside Last.fm, turn on Spotify (one link straight to that page).
+// After step 1 we quietly start reading plays; there is nothing to test or confirm. Plays
+// appear on Home by themselves, usually within a few minutes of the next song.
 export default function ConnectSteps({
   connectedAs,
   oneTap,
@@ -23,24 +24,11 @@ export default function ConnectSteps({
   const [username, setUsername] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(failed ? "Last.fm did not finish connecting. Try again." : null);
-  const [check, setCheck] = useState<Check | null>(null);
 
-  async function runCheck() {
-    setBusy(true);
-    setCheck(null);
-    const sync = await fetch("/api/lastfm/sync", { method: "POST" }).then((r) => r.json()).catch(() => null);
-    setBusy(false);
-    const me = sync?.me;
-    if (!sync) setCheck({ kind: "error" });
-    else if (me?.status === "private") setCheck({ kind: "private" });
-    else if (me && (me.imported > 0 || me.nowPlaying)) setCheck({ kind: "found", imported: me.imported, nowPlaying: me.nowPlaying });
-    else setCheck({ kind: "empty" });
-    router.refresh();
-  }
-
-  // Straight after coming back from Last.fm, look for plays without being asked.
+  // Straight after connecting, start the first import in the background.
+  const startReading = () => fetch("/api/lastfm/sync", { method: "POST" }).then(() => router.refresh()).catch(() => {});
   useEffect(() => {
-    if (justConnected && connectedAs) runCheck();
+    if (justConnected && connectedAs) startReading();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -60,7 +48,7 @@ export default function ConnectSteps({
       return;
     }
     router.refresh();
-    runCheck();
+    startReading();
   }
 
   const byName = (
@@ -95,6 +83,7 @@ export default function ConnectSteps({
           </p>
         ) : (
           <>
+            <p>Last.fm is the free service that keeps track of what you play. TunedIn reads it from there.</p>
             {oneTap ? (
               <>
                 {/* A normal link, not client navigation: it leaves the app for last.fm. */}
@@ -102,10 +91,9 @@ export default function ConnectSteps({
                   Connect Last.fm
                 </a>
                 <p className="text-xs opacity-60">
-                  You sign in on Last.fm and come straight back. We only learn your username, never your
-                  password.
+                  No account yet? You can create one on the page that opens. We only learn your username,
+                  never your password.
                 </p>
-                <ExternalLink href="https://www.last.fm/join">New to Last.fm? Create a free account first</ExternalLink>
                 <details className="text-xs">
                   <summary className="cursor-pointer opacity-70">Type my username instead</summary>
                   <div className="mt-2">{byName}</div>
@@ -113,43 +101,41 @@ export default function ConnectSteps({
               </>
             ) : (
               <>
-                <ExternalLink href="https://www.last.fm/join">New to Last.fm? Create a free account first</ExternalLink>
+                <ExternalLink href="https://www.last.fm/join">No account yet? Create one free</ExternalLink>
                 {byName}
               </>
             )}
-            {error && <p role="alert" className="text-red-500">{error}</p>}
+            {error && <p role="alert" className="text-danger">{error}</p>}
           </>
         )}
       </Step>
 
-      <Step n={2} title="Link Spotify to Last.fm" done={check?.kind === "found"} dimmed={!connectedAs}>
+      <Step n={2} title="Turn on Spotify inside Last.fm" dimmed={!connectedAs}>
         <p>
-          On the page this opens, press Connect next to Spotify Scrobbling. From then on Last.fm logs every
-          song you play on Spotify, on any device.
+          Open the page below, find <span className="font-semibold">Spotify Scrobbling</span> and press{" "}
+          <span className="font-semibold">Connect</span>. Sign in to Spotify when it asks.
         </p>
-        <ExternalLink href="https://www.last.fm/settings/applications">Open Last.fm&apos;s Spotify page</ExternalLink>
+        <a
+          href="https://www.last.fm/settings/applications"
+          target="_blank"
+          rel="noreferrer noopener"
+          className={`btn block ${connectedAs ? "" : "pointer-events-none"}`}
+          aria-disabled={!connectedAs}
+        >
+          Open Last.fm&apos;s Spotify page ↗
+        </a>
+        <p className="text-xs opacity-60">
+          That is everything. From your next song on, what you play on Spotify shows up in TunedIn by
+          itself, usually within a few minutes.
+        </p>
+        <p className="text-xs opacity-60">
+          Nothing after ten minutes? In Last.fm&apos;s privacy settings, make sure &quot;Hide recent listening
+          information&quot; is off. Settings in TunedIn shows whether your plays are coming through.
+        </p>
         <p className="text-xs opacity-60">
           On Apple Music or another service? Last.fm lists apps that connect them under &quot;Track My
           Music&quot;.
         </p>
-        {connectedAs && (
-          <>
-            <button type="button" onClick={runCheck} disabled={busy} className="btn mt-1">
-              {busy ? "Checking..." : "Check it is working"}
-            </button>
-            <p role="status" className="opacity-80">
-              {check?.kind === "found" &&
-                `It works. We found ${check.imported} recent play${check.imported === 1 ? "" : "s"}${
-                  check.nowPlaying ? " and what you are playing right now" : ""
-                }. More of your week fills in over the next few minutes.`}
-              {check?.kind === "empty" &&
-                "Nothing yet. That is normal straight after linking: play a song on Spotify, wait a minute, and check again."}
-              {check?.kind === "private" &&
-                'Your Last.fm profile hides its recent tracks, so we cannot read them. On Last.fm, open Settings, Privacy, and turn off "Hide recent listening information".'}
-              {check?.kind === "error" && "Could not check right now. Try again in a moment."}
-            </p>
-          </>
-        )}
       </Step>
     </ol>
   );
@@ -161,7 +147,7 @@ function Step({ n, title, done, dimmed, children }: { n: number; title: string; 
       <span
         aria-hidden
         className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-sm font-bold ${
-          done ? "bg-green-600 text-white" : "bg-foreground text-background"
+          done ? "bg-live text-background" : "bg-accent text-accent-foreground"
         }`}
       >
         {done ? "✓" : n}

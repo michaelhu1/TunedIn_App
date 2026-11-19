@@ -167,7 +167,7 @@ function ScopeLink({ href, label, active, mine }: { href: string; label: string;
       href={href}
       aria-current={active ? "page" : undefined}
       className={`whitespace-nowrap rounded-full border px-3 py-1 ${
-        active ? "border-foreground bg-foreground text-background" : "border-foreground/20"
+        active ? "border-accent bg-accent text-accent-foreground" : "border-foreground/20"
       }`}
     >
       {label}

@@ -32,7 +32,7 @@ export default async function MapPage({ searchParams }: { searchParams: Promise<
           href={v === "friends" ? "/map" : "/map?view=public"}
           aria-current={view === v ? "page" : undefined}
           className={`rounded-full border px-4 py-1.5 ${
-            view === v ? "border-foreground bg-foreground text-background" : "border-foreground/20"
+            view === v ? "border-accent bg-accent text-accent-foreground" : "border-foreground/20"
           }`}
         >
           {v === "friends" ? "Friends" : "Public"}

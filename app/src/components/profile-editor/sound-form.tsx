@@ -85,7 +85,7 @@ export default function SoundForm({
           <label htmlFor="music-note" className="text-sm opacity-80">
             Anything to add?
           </label>
-          <span id="music-note-count" className={`text-xs ${noteLength > MUSIC_NOTE_MAX ? "text-red-500" : "opacity-60"}`}>
+          <span id="music-note-count" className={`text-xs ${noteLength > MUSIC_NOTE_MAX ? "text-danger" : "opacity-60"}`}>
             {noteLength}/{MUSIC_NOTE_MAX}
           </span>
         </div>
