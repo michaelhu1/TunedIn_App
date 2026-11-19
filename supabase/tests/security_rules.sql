@@ -89,8 +89,8 @@ reset role;
 -- Setup as the database owner: some plays for B, and one favourite each for A and B
 -- (favourites can only be added by the server, so the test adds them the same way).
 insert into public.plays (user_id, track_id, played_at, source) values
- ('00000000-0000-0000-0000-00000000000b','00000000-0000-0000-0000-0000000000aa', now() - interval '1 day','checkin'),
- ('00000000-0000-0000-0000-00000000000b','00000000-0000-0000-0000-0000000000aa', now() - interval '2 days','checkin');
+ ('00000000-0000-0000-0000-00000000000b','00000000-0000-0000-0000-0000000000aa', now() - interval '1 day','lastfm'),
+ ('00000000-0000-0000-0000-00000000000b','00000000-0000-0000-0000-0000000000aa', now() - interval '2 days','lastfm');
 insert into public.profile_favorites (user_id, position, track_id) values
  ('00000000-0000-0000-0000-00000000000a', 1, '00000000-0000-0000-0000-0000000000aa'),
  ('00000000-0000-0000-0000-00000000000b', 1, '00000000-0000-0000-0000-0000000000aa');
@@ -186,12 +186,12 @@ insert into public.tracks (id, title, artist) values
   ('00000000-0000-0000-0000-0000000000c1','Security Test t1','Sec Test X1'), ('00000000-0000-0000-0000-0000000000c2','Security Test t2','Sec Test X2'),
   ('00000000-0000-0000-0000-0000000000c3','Security Test t3','Sec Test X3'), ('00000000-0000-0000-0000-0000000000c4','Security Test t4','Sec Test X4');
 insert into public.plays (user_id, track_id, played_at, source) values
-  ('00000000-0000-0000-0000-00000000000a','00000000-0000-0000-0000-0000000000c1', now() - interval '1 hour','checkin'),
-  ('00000000-0000-0000-0000-00000000000a','00000000-0000-0000-0000-0000000000c2', now() - interval '2 hour','checkin'),
-  ('00000000-0000-0000-0000-00000000000a','00000000-0000-0000-0000-0000000000c3', now() - interval '3 hour','checkin'),
-  ('00000000-0000-0000-0000-00000000000b','00000000-0000-0000-0000-0000000000c1', now() - interval '1 hour','checkin'),
-  ('00000000-0000-0000-0000-00000000000b','00000000-0000-0000-0000-0000000000c2', now() - interval '2 hour','checkin'),
-  ('00000000-0000-0000-0000-00000000000b','00000000-0000-0000-0000-0000000000c4', now() - interval '3 hour','checkin');
+  ('00000000-0000-0000-0000-00000000000a','00000000-0000-0000-0000-0000000000c1', now() - interval '1 hour','lastfm'),
+  ('00000000-0000-0000-0000-00000000000a','00000000-0000-0000-0000-0000000000c2', now() - interval '2 hour','lastfm'),
+  ('00000000-0000-0000-0000-00000000000a','00000000-0000-0000-0000-0000000000c3', now() - interval '3 hour','lastfm'),
+  ('00000000-0000-0000-0000-00000000000b','00000000-0000-0000-0000-0000000000c1', now() - interval '1 hour','lastfm'),
+  ('00000000-0000-0000-0000-00000000000b','00000000-0000-0000-0000-0000000000c2', now() - interval '2 hour','lastfm'),
+  ('00000000-0000-0000-0000-00000000000b','00000000-0000-0000-0000-0000000000c4', now() - interval '3 hour','lastfm');
 
 set local role authenticated;
 select set_config('request.jwt.claims','{"sub":"00000000-0000-0000-0000-00000000000a","role":"authenticated"}', true);
@@ -360,4 +360,27 @@ savepoint s; select public.set_presence_from_play('00000000-0000-0000-0000-00000
 update public.user_settings set lastfm_username = 'someone_else' where user_id = '00000000-0000-0000-0000-00000000000a';
 reset role;
 select lastfm_cursor is null and lastfm_status is null and lastfm_synced_at is null as reset_done from public.user_settings where user_id = '00000000-0000-0000-0000-00000000000a';
+-- ---------------------------------------------------------------------------
+-- Stats count streaming plays only (20261119200000_stats_streaming_only.sql)
+-- C has ONLY hand-set songs: five different artists, enough to qualify if they counted.
+-- ---------------------------------------------------------------------------
+reset role;
+insert into public.tracks (id, title, artist) values
+  ('00000000-0000-0000-0000-0000000000d1','Security Test h1','Sec Test H1'), ('00000000-0000-0000-0000-0000000000d2','Security Test h2','Sec Test H2'),
+  ('00000000-0000-0000-0000-0000000000d3','Security Test h3','Sec Test H3'), ('00000000-0000-0000-0000-0000000000d4','Security Test h4','Sec Test H4'),
+  ('00000000-0000-0000-0000-0000000000d5','Security Test h5','Sec Test H5');
+insert into public.plays (user_id, track_id, played_at, source)
+select '00000000-0000-0000-0000-00000000000c', t.id, now() - interval '1 hour', 'checkin' from public.tracks t where t.title like 'Security Test h%';
+update public.profiles set show_stats = true, open_to = array['concert_buddies'] where id = '00000000-0000-0000-0000-00000000000c';
+update public.user_settings set ghost_mode = false where user_id = '00000000-0000-0000-0000-00000000000c';
+\echo '== 61 hand-set songs are stored (5) but appear in no chart (0)'
+select count(*) as stored from public.plays where user_id = '00000000-0000-0000-0000-00000000000c' and source = 'checkin';
+select count(*) as in_charts from public.chart_listens(null, 7) where user_id = '00000000-0000-0000-0000-00000000000c';
+set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-0000-0000-00000000000c","role":"authenticated"}', true);
+\echo '== 62 C sees no top songs or artists of their own from hand-set songs (0, 0)'
+select count(*) as own_top_tracks from public.profile_top_tracks('00000000-0000-0000-0000-00000000000c');
+select count(*) as own_top_artists from public.profile_top_artists('00000000-0000-0000-0000-00000000000c');
+\echo '== 63 no taste match is computed from hand-set songs (0)'
+select count(*) as match_rows from public.taste_match('00000000-0000-0000-0000-00000000000a');
 rollback;
