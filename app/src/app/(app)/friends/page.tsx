@@ -8,7 +8,7 @@ export default async function FriendsPage() {
   const supabase = await createClient();
   const { data } = await supabase
     .from("my_friendships")
-    .select("status, sent_by_me, friend_id, handle, school")
+    .select("status, sent_by_me, friend_id, handle, school, avatar_url")
     .order("handle");
 
   return (
@@ -17,7 +17,7 @@ export default async function FriendsPage() {
         <Link href="/home" className="text-sm underline opacity-70">
           ← Back to Home
         </Link>
-        <h1 className="mt-2 text-2xl font-bold">Add friends and requests</h1>
+        <h1 className="mt-2 text-2xl font-bold">Friends</h1>
       </header>
       <FriendsManager me={profile.id} myHandle={profile.handle} rows={(data ?? []) as FriendRow[]} />
     </main>

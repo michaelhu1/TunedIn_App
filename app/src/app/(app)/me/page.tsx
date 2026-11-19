@@ -41,7 +41,9 @@ export default async function MePage({ searchParams }: { searchParams: Promise<{
               {profile.school.short_name}
               {mine?.class_year ? ` ’${String(mine.class_year).slice(-2)}` : ""}
               {" · "}
-              {friendCount ?? 0} friend{friendCount === 1 ? "" : "s"}
+              <Link href="/friends" className="underline">
+                {friendCount ?? 0} friend{friendCount === 1 ? "" : "s"}
+              </Link>
             </p>
           </div>
         </div>
@@ -80,7 +82,7 @@ export default async function MePage({ searchParams }: { searchParams: Promise<{
         />
       </section>
 
-      <section>
+      <section id="blocked" className="scroll-mt-6">
         <h2 className="mb-2 text-xs uppercase tracking-wide opacity-60">Blocked people</h2>
         <BlockedList me={profile.id} rows={(blocked ?? []) as BlockedRow[]} />
       </section>

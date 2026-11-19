@@ -18,8 +18,8 @@ type TrackJoin = { id: string; title: string; artist: string; artwork_url: strin
 //   2. Your friends: what each of them is on, live first.
 //   3. People you might click with: a short row of suggestions.
 //   4. Your campus: the top few songs at NYU this week.
-// "Add friends" (top right) leads to adding people and answering requests, and carries a red
-// badge when someone is waiting on you.
+// "Friends" (top right) leads to the page for adding and removing people and answering
+// requests, and carries a red badge when someone is waiting on you.
 //
 // TunedIn does not play music, so there is nothing here to browse or queue. Setting a song
 // by hand is one small link for people who have not connected a streaming service.
@@ -56,9 +56,9 @@ export default async function HomePage() {
         <Link
           href="/friends"
           className="relative rounded-full border border-foreground/20 px-4 py-2 text-sm font-semibold"
-          aria-label={pending > 0 ? `Add friends and requests, ${pending} waiting` : "Add friends and requests"}
+          aria-label={pending > 0 ? `Friends, ${pending} request${pending === 1 ? "" : "s"} waiting` : "Friends: add, remove and requests"}
         >
-          Add friends
+          Friends
           {pending > 0 && (
             <span className="absolute -right-1.5 -top-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1 text-xs font-bold text-white">
               {pending}
