@@ -91,7 +91,7 @@ export default async function ChartView({ school }: { school: string | null }) {
                 <li key={l.handle} className="flex items-center gap-3 py-2">
                   <span className="w-6 text-right text-sm tabular-nums opacity-60">{l.rank}</span>
                   <p className="min-w-0 flex-1 truncate">
-                    <span className="font-medium">@{l.handle}</span>
+                    <Link href={"/u/" + l.handle} className="font-medium hover:underline">@{l.handle}</Link>
                     <span className="opacity-60"> · {l.school}</span>
                     {l.automatic && <span className="ml-2 rounded bg-foreground/10 px-1.5 py-0.5 text-xs">Autopilot</span>}
                   </p>

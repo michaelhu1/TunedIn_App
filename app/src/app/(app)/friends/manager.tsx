@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { HANDLE_PATTERN } from "@/lib/validation";
@@ -151,7 +152,7 @@ function Row({ row, children }: { row: FriendRow; children: React.ReactNode }) {
   return (
     <li className="flex items-center gap-3 py-2">
       <p className="min-w-0 flex-1 truncate">
-        <span className="font-medium">@{row.handle}</span>
+        <Link href={"/u/" + row.handle} className="font-medium hover:underline">@{row.handle}</Link>
         <span className="opacity-60"> · {row.school}</span>
       </p>
       {children}

@@ -266,7 +266,7 @@ function PersonCard({ person, onClose }: { person: MapPerson; onClose: () => voi
         <Cover src={track?.artworkUrl ?? null} size={64} />
         <div className="min-w-0 flex-1">
           <p className="text-xs opacity-60">
-            {person.isMe ? "You" : `@${person.handle}`} ·{" "}
+            {person.isMe ? "You" : <Link href={"/u/" + person.handle} className="underline">@{person.handle}</Link>} ·{" "}
             {track ? (isLive(person) ? "● live now" : `earlier today, ${ago(person.updatedAt)}`) : "no song yet today"}
           </p>
           {track && (
