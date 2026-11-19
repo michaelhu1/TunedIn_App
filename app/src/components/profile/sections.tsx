@@ -18,19 +18,6 @@ function Heading({ children }: { children: React.ReactNode }) {
   return <h2 className="mb-2 text-xs uppercase tracking-wide opacity-60">{children}</h2>;
 }
 
-/** A row of non-interactive tags. A list, so screen readers announce how many there are. */
-function Pills({ items, label }: { items: string[]; label: string }) {
-  return (
-    <ul aria-label={label} className="flex flex-wrap gap-2">
-      {items.map((item) => (
-        <li key={item} className="rounded-full border border-foreground/20 px-3 py-1 text-sm">
-          {item}
-        </li>
-      ))}
-    </ul>
-  );
-}
-
 export function TasteMatchCard({ match }: { match: TasteMatch }) {
   const shared = sharedArtistsSentence(match.sharedArtists, match.sharedCount);
   return (
@@ -53,14 +40,56 @@ export function TasteMatchCard({ match }: { match: TasteMatch }) {
   );
 }
 
-export function OpenTo({ keys }: { keys: FullProfile["openTo"] }) {
-  const labels = labelsFor(keys, OPEN_TO);
-  if (labels.length === 0) return null;
+/** What they listen to and what they are up for, as two rows of tags straight under the
+ *  bio. There are no visible headings: the two rows are told apart by how they look (filled
+ *  genre tags, outlined "open to" tags after a small label), and each list still carries a
+ *  name for screen readers. */
+export function TasteTags({ genres, openTo }: { genres: string[]; openTo: FullProfile["openTo"] }) {
+  const genreTags = knownGenres(genres);
+  const openLabels = labelsFor(openTo, OPEN_TO);
+  if (genreTags.length === 0 && openLabels.length === 0) return null;
   return (
-    <section>
-      <Heading>Open to</Heading>
-      <Pills items={labels} label="Open to" />
+    <section aria-label="Music taste" className="flex flex-col gap-2.5">
+      {genreTags.length > 0 && (
+        <ul aria-label="Genres" className="flex flex-wrap gap-2">
+          {genreTags.map((g) => (
+            <li key={g} className="rounded-full bg-accent px-3 py-1 text-sm font-medium text-accent-foreground">
+              {g}
+            </li>
+          ))}
+        </ul>
+      )}
+      {openLabels.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2">
+          <span id="open-to-label" className="text-xs opacity-70">
+            Open to
+          </span>
+          <ul aria-labelledby="open-to-label" className="contents">
+            {openLabels.map((o) => (
+              <li key={o} className="rounded-full border border-foreground/15 bg-surface px-3 py-1 text-sm">
+                {o}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </section>
+  );
+}
+
+/** "🎸 Guitar · Write songs · In a band — bass in a jazz trio": one line in the header,
+ *  beside major and hometown, because making music is who someone is rather than a tag. */
+export function MakesMusicLine({ roles, note }: { roles: FullProfile["musicRoles"]; note: string | null }) {
+  const roleLabels = labelsFor(roles, MUSIC_ROLES);
+  // The note explains the roles, so it only shows alongside them.
+  if (roleLabels.length === 0) return null;
+  return (
+    <p className="line-clamp-2 break-words text-sm opacity-70">
+      <span aria-hidden className="mr-1">🎸</span>
+      <span className="sr-only">Makes music: </span>
+      {roleLabels.join(" · ")}
+      {note && <> — {note}</>}
+    </p>
   );
 }
 
@@ -76,36 +105,29 @@ export function Prompt({ prompt }: { prompt: NonNullable<FullProfile["prompt"]> 
   );
 }
 
-/** Favourite artists, with the ones the viewer also picked called out. */
+/** Favourite artists. The ones the viewer also picked come first and are filled in. */
 export function FavoriteArtists({ artists, sharedWithViewer }: { artists: string[]; sharedWithViewer: string[] }) {
   if (artists.length === 0) return null;
+  const shared = new Set(sharedWithViewer.map((a) => a.toLowerCase()));
+  const ordered = [...artists.filter((a) => shared.has(a.toLowerCase())), ...artists.filter((a) => !shared.has(a.toLowerCase()))];
   return (
     <section className="flex flex-col gap-2">
       <Heading>Favourite artists</Heading>
-      <Pills items={artists} label="Favourite artists" />
-      {sharedWithViewer.length > 0 && (
-        <p className="text-sm opacity-80">You both like {joinNames(sharedWithViewer)}.</p>
-      )}
-    </section>
-  );
-}
-
-export function TheirSound({ genres, roles, note }: { genres: string[]; roles: FullProfile["musicRoles"]; note: string | null }) {
-  const genreTags = knownGenres(genres);
-  const roleLabels = labelsFor(roles, MUSIC_ROLES);
-  // The note explains the roles ("bass in a jazz trio"), so it only shows alongside them.
-  if (genreTags.length === 0 && roleLabels.length === 0) return null;
-  return (
-    <section className="flex flex-col gap-3">
-      <Heading>Their sound</Heading>
-      {genreTags.length > 0 && <Pills items={genreTags} label="Genres" />}
-      {roleLabels.length > 0 && (
-        <div className="flex flex-col gap-2">
-          <h3 className="text-sm font-medium">Makes music</h3>
-          <Pills items={roleLabels} label="Makes music" />
-          {note && <p className="break-words text-sm opacity-70">{note}</p>}
-        </div>
-      )}
+      <ul aria-label="Favourite artists" className="flex flex-wrap gap-2">
+        {ordered.map((a) =>
+          shared.has(a.toLowerCase()) ? (
+            <li key={a} className="rounded-full bg-accent px-3 py-1 text-sm font-medium text-accent-foreground">
+              {a}
+              <span className="sr-only"> (you both like)</span>
+            </li>
+          ) : (
+            <li key={a} className="rounded-full border border-foreground/20 px-3 py-1 text-sm">
+              {a}
+            </li>
+          ),
+        )}
+      </ul>
+      {sharedWithViewer.length > 0 && <p className="text-sm opacity-80">You both like {joinNames(sharedWithViewer)}.</p>}
     </section>
   );
 }
@@ -157,22 +179,24 @@ function ConcertGroup({ title, concerts, today, children }: { title: string; con
   );
 }
 
-export function Instagram({ handle }: { handle: string | null }) {
+/** A small square Instagram button for the row of actions under the bio. */
+export function InstagramButton({ handle }: { handle: string | null }) {
   const url = instagramUrl(handle);
   if (!url) return null;
   return (
-    <section aria-label="Instagram">
-      <a
-        href={url}
-        target="_blank"
-        rel="noreferrer noopener" // same reasoning as the playlist links
-        className="flex items-center gap-3 rounded-xl border border-foreground/15 px-4 py-3"
-      >
-        <span className="min-w-0 flex-1 truncate font-medium">@{handle} on Instagram</span>
-        <span aria-hidden className="opacity-60">↗</span>
-        <span className="sr-only">(opens Instagram in a new tab)</span>
-      </a>
-    </section>
+    <a
+      href={url}
+      target="_blank"
+      rel="noreferrer noopener" // same reasoning as the playlist links
+      aria-label={`@${handle} on Instagram (opens in a new tab)`}
+      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-foreground/20 hover:bg-foreground/5"
+    >
+      <svg aria-hidden width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="3" width="18" height="18" rx="5" />
+        <circle cx="12" cy="12" r="4" />
+        <circle cx="17.5" cy="6.5" r="0.6" fill="currentColor" />
+      </svg>
+    </a>
   );
 }
 
@@ -207,7 +231,7 @@ export function Favorites({ favorites }: { favorites: FullProfile["favorites"] }
     const f = favorites[0];
     return (
       <section>
-        <Heading>On repeat right now</Heading>
+        <Heading>On repeat</Heading>
         <div className="flex items-center gap-4 rounded-xl border border-foreground/15 p-3">
           {f.artworkUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -226,7 +250,7 @@ export function Favorites({ favorites }: { favorites: FullProfile["favorites"] }
   }
   return (
     <section>
-      <Heading>On repeat right now</Heading>
+      <Heading>On repeat</Heading>
       <ul className={`grid gap-3 ${FILL_COLUMNS[favorites.length] ?? "grid-cols-2"}`}>
         {favorites.map((f) => (
           <li key={f.trackId} className="min-w-0">

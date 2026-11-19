@@ -13,14 +13,14 @@ import { labelFor } from "./labels";
 import {
   Concerts,
   Favorites,
-  Instagram,
+  InstagramButton,
+  MakesMusicLine,
   NowPlaying,
-  OpenTo,
   Playlists,
   Prompt,
   TasteMatchCard,
   FavoriteArtists,
-  TheirSound,
+  TasteTags,
   TopArtists,
   TopSongs,
 } from "./sections";
@@ -119,44 +119,47 @@ export default async function ProfileScreen({
               {status && <span className="rounded-full border border-foreground/20 px-2 py-0.5 text-xs">{status}</span>}
             </p>
             {aboutLine && <p className="break-words text-sm opacity-70">{aboutLine}</p>}
+            <MakesMusicLine roles={profile.musicRoles} note={profile.musicNote} />
           </div>
         </div>
         {/* Plain text only; whitespace-pre-line keeps the owner's line breaks. */}
         {profile.bio && <p className="whitespace-pre-line break-words">{profile.bio}</p>}
-        {/* Your own profile: the two things you do with it, right under the bio. */}
-        {isOwner && (
-          <div className="flex gap-2">
-            <Link href="/me/edit" className="flex-1 rounded-lg border border-foreground/20 py-2 text-center text-sm font-semibold hover:bg-foreground/5">
+        {/* Who they are, in one read: genres and what they are open to, before any buttons. */}
+        <TasteTags genres={profile.genres} openTo={profile.openTo} />
+      </header>
+
+      {/* What connects you two sits right above the button that acts on it. */}
+      {profile.tasteMatch && <TasteMatchCard match={profile.tasteMatch} />}
+
+      {/* One row of actions: Edit and Share on your own profile, the friend button on anyone
+          else's, with Instagram as a small button at the end. */}
+      <div className="flex items-start gap-2">
+        {isOwner ? (
+          <>
+            <Link href="/me/edit" className="flex h-10 flex-1 items-center justify-center rounded-lg border border-foreground/20 text-sm font-semibold hover:bg-foreground/5">
               Edit profile
             </Link>
             <ShareButton
               path={`/invite/${profile.handle}`}
               title={`Add @${profile.handle} on TunedIn`}
               label="Share profile"
-              className="flex-1 rounded-lg border border-foreground/20 py-2 text-center text-sm font-semibold hover:bg-foreground/5"
+              className="h-10 flex-1 rounded-lg border border-foreground/20 text-center text-sm font-semibold hover:bg-foreground/5"
             />
+          </>
+        ) : (
+          <div className="min-w-0 flex-1">
+            <FriendButton me={viewerId} friendId={profile.id} handle={profile.handle} state={friendState ?? "none"} />
           </div>
         )}
-      </header>
+        <InstagramButton handle={profile.instagram} />
+      </div>
 
-      {/* Straight under the header: where to find them and what they are into. */}
-      <Instagram handle={profile.instagram} />
-      <TheirSound genres={profile.genres} roles={profile.musicRoles} note={profile.musicNote} />
-      <FavoriteArtists artists={profile.favoriteArtists} sharedWithViewer={sharedArtists} />
-
-      {/* What connects you two: the easiest reason to say hi. */}
-      {profile.tasteMatch && <TasteMatchCard match={profile.tasteMatch} />}
-      <OpenTo keys={profile.openTo} />
-
-      {/* Your own profile has Edit and Share under the bio instead. */}
-      {!isOwner && (
-        <FriendButton me={viewerId} friendId={profile.id} handle={profile.handle} state={friendState ?? "none"} />
-      )}
-
-      {profile.prompt && <Prompt prompt={profile.prompt} />}
-      {profile.nowPlaying && <NowPlaying track={profile.nowPlaying} />}
+      {/* Pictures before words: the cover-art sections come first. */}
       {profile.favorites.length > 0 && <Favorites favorites={profile.favorites} />}
       {profile.links.length > 0 && <Playlists links={profile.links} />}
+      {profile.prompt && <Prompt prompt={profile.prompt} />}
+      {profile.nowPlaying && <NowPlaying track={profile.nowPlaying} />}
+      <FavoriteArtists artists={profile.favoriteArtists} sharedWithViewer={sharedArtists} />
       <Concerts concerts={profile.concerts} isOwner={isOwner} />
       {ownListening ?? (
         <>
