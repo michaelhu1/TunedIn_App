@@ -298,4 +298,51 @@ set local role anon;
 savepoint s; select count(*) from public.blocks; rollback to s;
 savepoint s; insert into public.reports (reporter_id, reported_user_id, reason) values ('00000000-0000-0000-0000-00000000000b', '00000000-0000-0000-0000-00000000000c', 'spam'); rollback to s;
 savepoint s; select * from public.my_blocks(); rollback to s;
+-- ---------------------------------------------------------------------------
+-- People you might click with (20261119180000_discover.sql)
+-- B is the viewer throughout; the question each time is whether A is suggested to B.
+-- ---------------------------------------------------------------------------
+reset role;
+delete from public.blocks where '00000000-0000-0000-0000-00000000000a' in (blocker_id, blocked_id);
+delete from public.friendships where '00000000-0000-0000-0000-00000000000a' in (requester_id, addressee_id);
+update public.user_settings set ghost_mode = false where user_id in ('00000000-0000-0000-0000-00000000000a', '00000000-0000-0000-0000-00000000000b');
+update public.profiles set show_stats = true, open_to = '{}' where id = '00000000-0000-0000-0000-00000000000a';
+set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-0000-0000-00000000000b","role":"authenticated"}', true);
+\echo '== 51 A has no "Open to" chip, so A is not suggested (0)'
+select count(*) as suggested from public.people_you_might_click_with(50) where user_id = '00000000-0000-0000-0000-00000000000a';
+reset role; update public.profiles set open_to = array['concert_buddies'] where id = '00000000-0000-0000-0000-00000000000a';
+set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-0000-0000-00000000000b","role":"authenticated"}', true);
+\echo '== 52 A picks an "Open to" chip: suggested (1), with a taste score because A shows stats (t)'
+select count(*) as suggested from public.people_you_might_click_with(50) where user_id = '00000000-0000-0000-0000-00000000000a';
+select taste_score is not null as has_score from public.people_you_might_click_with(50) where user_id = '00000000-0000-0000-0000-00000000000a';
+reset role; update public.profiles set show_stats = false where id = '00000000-0000-0000-0000-00000000000a';
+set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-0000-0000-00000000000b","role":"authenticated"}', true);
+\echo '== 53 A hides stats: still suggested (1) but with no score and no shared artists (t)'
+select count(*) as suggested from public.people_you_might_click_with(50) where user_id = '00000000-0000-0000-0000-00000000000a';
+select taste_score is null and cardinality(shared_artists) = 0 as nothing_leaked from public.people_you_might_click_with(50) where user_id = '00000000-0000-0000-0000-00000000000a';
+reset role; update public.user_settings set ghost_mode = true where user_id = '00000000-0000-0000-0000-00000000000a';
+set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-0000-0000-00000000000b","role":"authenticated"}', true);
+\echo '== 54 A in ghost mode: not suggested (0)'
+select count(*) as suggested from public.people_you_might_click_with(50) where user_id = '00000000-0000-0000-0000-00000000000a';
+reset role; update public.user_settings set ghost_mode = false where user_id = '00000000-0000-0000-0000-00000000000a';
+insert into public.friendships (requester_id, addressee_id) values ('00000000-0000-0000-0000-00000000000a', '00000000-0000-0000-0000-00000000000b');
+set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-0000-0000-00000000000b","role":"authenticated"}', true);
+\echo '== 55 a pending friend request between them: not suggested (0)'
+select count(*) as suggested from public.people_you_might_click_with(50) where user_id = '00000000-0000-0000-0000-00000000000a';
+reset role; delete from public.friendships where '00000000-0000-0000-0000-00000000000a' in (requester_id, addressee_id);
+insert into public.blocks (blocker_id, blocked_id) values ('00000000-0000-0000-0000-00000000000a', '00000000-0000-0000-0000-00000000000b');
+set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-0000-0000-00000000000b","role":"authenticated"}', true);
+\echo '== 56 A has blocked B: not suggested (0)'
+select count(*) as suggested from public.people_you_might_click_with(50) where user_id = '00000000-0000-0000-0000-00000000000a';
+\echo '== 57 B is never suggested to themselves (0)'
+select count(*) as self_suggested from public.people_you_might_click_with(50) where user_id = '00000000-0000-0000-0000-00000000000b';
+set local role anon;
+\echo '== 58 anon: people_you_might_click_with (ERROR)'
+savepoint s; select * from public.people_you_might_click_with(); rollback to s;
 rollback;
