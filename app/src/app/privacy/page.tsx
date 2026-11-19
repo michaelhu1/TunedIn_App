@@ -23,8 +23,7 @@ export default function PrivacyPage() {
 
       <p>
         TunedIn is a free, open-source app for NYU students that shows what you and your friends are listening
-        to. It is a student project, not a company. There are no ads, nothing is sold, and there are no
-        tracking or analytics scripts. The code is public, so anyone can check that this page is true.
+        to. It is a student project, not a company. There are no ads and nothing is sold. The code is public, so anyone can check that this page is true.
       </p>
 
       <Section title="What we store">
@@ -81,6 +80,15 @@ export default function PrivacyPage() {
           username you give us, and Deezer, Apple&apos;s iTunes search and Spotify for song details, artwork and
           links; those requests contain song names, not who you are. Map images load directly from
           OpenFreeMap, which, like any website, sees your device&apos;s internet address when it does.
+        </p>
+      </Section>
+
+      <Section title="Counting visits">
+        <p>
+          We count page views using Vercel Web Analytics, to know how many people use TunedIn. It sets no
+          cookies and does not identify you or follow you to other sites. Addresses that contain a handle are
+          recorded without the handle. Separately, the person running TunedIn can see totals from the
+          database, such as how many people have signed up and how many songs have been played.
         </p>
       </Section>
 

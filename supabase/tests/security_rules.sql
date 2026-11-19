@@ -465,4 +465,16 @@ select shared_favorites from public.people_you_might_click_with(50) where user_i
 reset role;
 \echo '== 77 more than five favourite artists cannot be stored (ERROR)'
 savepoint s; update public.profiles set favorite_artists = array['1','2','3','4','5','6'] where id = '00000000-0000-0000-0000-00000000000a'; rollback to s;
+-- ---------------------------------------------------------------------------
+-- Admin numbers (20261120000000_admin_stats.sql)
+-- ---------------------------------------------------------------------------
+set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-0000-0000-00000000000b","role":"authenticated"}', true);
+\echo '== 78 a signed-in member cannot read the admin numbers (ERROR), nor can anon (ERROR)'
+savepoint s; select public.admin_stats(); rollback to s;
+set local role anon;
+savepoint s; select public.admin_stats(); rollback to s;
+reset role;
+\echo '== 79 the admin numbers contain totals only: no emails, handles or ids (expect f)'
+select public.admin_stats()::text ~* '(@nyu\.edu|alice|bob|00000000-0000-0000-0000-00000000000a)' as leaks_identity;
 rollback;
