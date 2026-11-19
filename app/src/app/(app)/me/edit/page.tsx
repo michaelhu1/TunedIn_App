@@ -33,8 +33,8 @@ export default async function EditProfilePage() {
         </Link>
         <h1 className="mt-2 text-3xl font-bold">Edit profile</h1>
         <p className="mt-1 text-sm opacity-70">
-          Everything here is visible to other signed-in members.{" "}
-          <Link href={`/u/${profile.handle}`} className="underline">
+          Laid out in the same order as your profile. Everything here is visible to other signed-in members.{" "}
+          <Link href="/me" className="underline">
             See your profile
           </Link>
         </p>
