@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/server";
 import { HANDLE_PATTERN } from "@/lib/validation";
 import Avatar from "@/components/avatar";
 import FriendButton, { type FriendState } from "@/components/profile/friend-button";
+import SafetyMenu from "@/components/profile/safety-menu";
 import { labelFor } from "@/components/profile/labels";
 import {
   Concerts,
@@ -147,6 +148,8 @@ export default async function ProfilePage({ params }: Props) {
         ) : (
           <p className="text-sm opacity-60">@{profile.handle} has not filled in their profile yet.</p>
         ))}
+      {/* Block and report sit at the very bottom: easy to find, hard to hit by accident. */}
+      {!isOwner && <SafetyMenu me={viewer.id} userId={profile.id} handle={profile.handle} />}
     </main>
   );
 }

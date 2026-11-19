@@ -237,4 +237,65 @@ set local role anon;
 \echo '== 39 anon: profile_concerts (ERROR), taste_match (ERROR)'
 savepoint s; select count(*) from public.profile_concerts; rollback to s;
 savepoint s; select * from public.taste_match('00000000-0000-0000-0000-00000000000a'); rollback to s;
+-- ---------------------------------------------------------------------------
+-- Report and block (20261119170000_report_and_block.sql)
+-- ---------------------------------------------------------------------------
+reset role;
+update public.user_settings set ghost_mode = false where user_id in ('00000000-0000-0000-0000-00000000000a', '00000000-0000-0000-0000-00000000000b');
+update public.profiles set show_stats = true where id in ('00000000-0000-0000-0000-00000000000a', '00000000-0000-0000-0000-00000000000b');
+delete from public.friendships where '00000000-0000-0000-0000-00000000000a' in (requester_id, addressee_id);
+insert into public.friendships (requester_id, addressee_id, status, accepted_at) values ('00000000-0000-0000-0000-00000000000a', '00000000-0000-0000-0000-00000000000b', 'accepted', now());
+
+set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-0000-0000-00000000000a","role":"authenticated"}', true);
+\echo '== 40 A blocks B (1); A blocks on behalf of B (ERROR); A blocks self (ERROR)'
+with x as (insert into public.blocks (blocker_id, blocked_id) values ('00000000-0000-0000-0000-00000000000a', '00000000-0000-0000-0000-00000000000b') returning 1) select count(*) as blocked from x;
+savepoint s; insert into public.blocks (blocker_id, blocked_id) values ('00000000-0000-0000-0000-00000000000b', '00000000-0000-0000-0000-00000000000c'); rollback to s;
+savepoint s; insert into public.blocks (blocker_id, blocked_id) values ('00000000-0000-0000-0000-00000000000a', '00000000-0000-0000-0000-00000000000a'); rollback to s;
+\echo '== 41 A after blocking: B profile (0), own block list shows bob (1 row), friend request to B (ERROR)'
+select count(*) as a_sees_b from public.profiles where id = '00000000-0000-0000-0000-00000000000b';
+select handle from public.my_blocks();
+savepoint s; insert into public.friendships (requester_id, addressee_id) values ('00000000-0000-0000-0000-00000000000a', '00000000-0000-0000-0000-00000000000b'); rollback to s;
+reset role;
+\echo '== 42 the A-B friendship was removed by the block (expect 0)'
+select count(*) as friendships_left from public.friendships where '00000000-0000-0000-0000-00000000000a' in (requester_id, addressee_id) and '00000000-0000-0000-0000-00000000000b' in (requester_id, addressee_id);
+
+set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-0000-0000-00000000000b","role":"authenticated"}', true);
+\echo '== 43 B, the blocked person: A profile (0), blocks visible (0), my_blocks (0), A concerts (0), A top tracks (0), taste match (0)'
+select count(*) as b_sees_a from public.profiles where id = '00000000-0000-0000-0000-00000000000a';
+select count(*) as blocks_visible from public.blocks;
+select count(*) as my_blocks_rows from public.my_blocks();
+select count(*) as a_concerts from public.profile_concerts where user_id = '00000000-0000-0000-0000-00000000000a';
+select count(*) as a_top_tracks from public.profile_top_tracks('00000000-0000-0000-0000-00000000000a');
+select count(*) as match_rows from public.taste_match('00000000-0000-0000-0000-00000000000a');
+\echo '== 44 B sends A a friend request (ERROR); B removes the block A made (0)'
+savepoint s; insert into public.friendships (requester_id, addressee_id) values ('00000000-0000-0000-0000-00000000000b', '00000000-0000-0000-0000-00000000000a'); rollback to s;
+with x as (delete from public.blocks where blocker_id = '00000000-0000-0000-0000-00000000000a' returning 1) select count(*) as removed from x;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-0000-0000-00000000000c","role":"authenticated"}', true);
+\echo '== 45 C, uninvolved: still sees both A and B (2)'
+select count(*) as c_sees from public.profiles where id in ('00000000-0000-0000-0000-00000000000a', '00000000-0000-0000-0000-00000000000b');
+select set_config('request.jwt.claims','{"sub":"00000000-0000-0000-0000-00000000000a","role":"authenticated"}', true);
+\echo '== 46 A unblocks B (1); B can see A again (1)'
+with x as (delete from public.blocks where blocker_id = '00000000-0000-0000-0000-00000000000a' and blocked_id = '00000000-0000-0000-0000-00000000000b' returning 1) select count(*) as unblocked from x;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-0000-0000-00000000000b","role":"authenticated"}', true);
+select count(*) as b_sees_a_again from public.profiles where id = '00000000-0000-0000-0000-00000000000a';
+
+\echo '== 47 B reports A (no error); reads reports (ERROR); reports as C (ERROR); second open report (ERROR); unknown reason (ERROR); reports self (ERROR)'
+insert into public.reports (reporter_id, reported_user_id, reason, details) values ('00000000-0000-0000-0000-00000000000b', '00000000-0000-0000-0000-00000000000a', 'spam', 'test report');
+savepoint s; select count(*) from public.reports; rollback to s;
+savepoint s; insert into public.reports (reporter_id, reported_user_id, reason) values ('00000000-0000-0000-0000-00000000000c', '00000000-0000-0000-0000-00000000000a', 'spam'); rollback to s;
+savepoint s; insert into public.reports (reporter_id, reported_user_id, reason) values ('00000000-0000-0000-0000-00000000000b', '00000000-0000-0000-0000-00000000000a', 'other'); rollback to s;
+savepoint s; insert into public.reports (reporter_id, reported_user_id, reason) values ('00000000-0000-0000-0000-00000000000b', '00000000-0000-0000-0000-00000000000c', 'because'); rollback to s;
+savepoint s; insert into public.reports (reporter_id, reported_user_id, reason) values ('00000000-0000-0000-0000-00000000000b', '00000000-0000-0000-0000-00000000000b', 'spam'); rollback to s;
+\echo '== 48 B sets a status or snapshot on a report (ERROR: only four columns may be written)'
+savepoint s; insert into public.reports (reporter_id, reported_user_id, reason, status) values ('00000000-0000-0000-0000-00000000000b', '00000000-0000-0000-0000-00000000000c', 'spam', 'dismissed'); rollback to s;
+reset role;
+\echo '== 49 as the database owner: the report exists with a snapshot of alice (expect alice | open)'
+select snapshot->>'handle' as snapshot_handle, status from public.reports where reporter_id = '00000000-0000-0000-0000-00000000000b' and reported_user_id = '00000000-0000-0000-0000-00000000000a';
+set local role anon;
+\echo '== 50 anon: blocks (ERROR), reports (ERROR), my_blocks (ERROR)'
+savepoint s; select count(*) from public.blocks; rollback to s;
+savepoint s; insert into public.reports (reporter_id, reported_user_id, reason) values ('00000000-0000-0000-0000-00000000000b', '00000000-0000-0000-0000-00000000000c', 'spam'); rollback to s;
+savepoint s; select * from public.my_blocks(); rollback to s;
 rollback;
