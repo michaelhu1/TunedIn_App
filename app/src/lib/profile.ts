@@ -61,6 +61,8 @@ export type FullProfile = {
   instagram: string | null;
   studentStatus: StudentStatusKey | null;
   prompt: { key: PromptKey; answer: string } | null;
+  /** Up to five artists picked at sign-up or in the editor, in the catalogue's spelling. */
+  favoriteArtists: string[];
   genres: string[];
   openTo: OpenToKey[];
   musicRoles: MusicRoleKey[];
@@ -86,7 +88,7 @@ export async function getFullProfile(supabase: SupabaseClient, handle: string): 
   const { data: p } = await supabase
     .from("profiles")
     .select(
-      "id, handle, display_name, bio, class_year, avatar_url, show_stats, pronouns, major, hometown, instagram, student_status, prompt_key, prompt_answer, genres, open_to, music_roles, music_note, school:schools(id, name, short_name, slug)",
+      "id, handle, display_name, bio, class_year, avatar_url, show_stats, pronouns, major, hometown, instagram, student_status, prompt_key, prompt_answer, favorite_artists, genres, open_to, music_roles, music_note, school:schools(id, name, short_name, slug)",
     )
     .eq("handle", handle.toLowerCase())
     .maybeSingle();
@@ -133,6 +135,7 @@ export async function getFullProfile(supabase: SupabaseClient, handle: string): 
     instagram: p.instagram,
     studentStatus: p.student_status as StudentStatusKey | null,
     prompt: p.prompt_key && p.prompt_answer ? { key: p.prompt_key as PromptKey, answer: p.prompt_answer } : null,
+    favoriteArtists: p.favorite_artists ?? [],
     genres: p.genres ?? [],
     openTo: (p.open_to ?? []) as OpenToKey[],
     musicRoles: (p.music_roles ?? []) as MusicRoleKey[],

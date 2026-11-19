@@ -7,9 +7,18 @@ import { HANDLE_PATTERN } from "@/lib/validation";
 
 type School = { id: string; name: string; short_name: string };
 
-export default function OnboardingForm({ userId, schools }: { userId: string; schools: School[] }) {
+export default function OnboardingForm({
+  userId,
+  schools,
+  suggestedHandle = "",
+}: {
+  userId: string;
+  schools: School[];
+  /** A starting point taken from the email address, so most people do not have to type one. */
+  suggestedHandle?: string;
+}) {
   const router = useRouter();
-  const [handle, setHandle] = useState("");
+  const [handle, setHandle] = useState(suggestedHandle);
   const [schoolId, setSchoolId] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -41,7 +50,7 @@ export default function OnboardingForm({ userId, schools }: { userId: string; sc
       );
       return;
     }
-    router.replace("/connect");
+    router.replace("/welcome");
     router.refresh();
   }
 

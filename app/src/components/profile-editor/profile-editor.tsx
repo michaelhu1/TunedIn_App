@@ -2,6 +2,7 @@
 
 // Type-only import: erased at build time, so the server-only module is not bundled here.
 import type { FullProfile } from "@/lib/profile";
+import ArtistPicker from "@/components/artist-picker";
 import AvatarUpload from "@/components/profile-editor/avatar-upload";
 import AboutForm from "./about-form";
 import BasicsForm, { type School } from "./basics-form";
@@ -32,10 +33,12 @@ export default function ProfileEditor({
   profile,
   schools,
   limits,
+  popularArtists,
 }: {
   profile: FullProfile;
   schools: School[];
   limits: EditorLimits;
+  popularArtists: { name: string; pictureUrl: string | null }[];
 }) {
   return (
     <div className="flex flex-col gap-10">
@@ -71,6 +74,10 @@ export default function ProfileEditor({
 
       <Section title="Prompt">
         <PromptForm userId={profile.id} initial={profile.prompt} />
+      </Section>
+
+      <Section title="Favourite artists">
+        <ArtistPicker popular={popularArtists} initial={profile.favoriteArtists} doneLabel="Save artists" />
       </Section>
 
       <Section title="Your sound">

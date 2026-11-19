@@ -6,7 +6,7 @@ import PreviewButton from "@/components/preview-button";
 import { formatConcertDate, groupConcerts, todayYmd } from "./concerts";
 import { instagramUrl, knownGenres, labelFor, labelsFor } from "./labels";
 import { serviceName } from "./service-name";
-import { matchRead, sharedArtistsSentence } from "./taste-match";
+import { matchRead, sharedArtistsSentence, joinNames } from "./taste-match";
 
 // The read-only blocks of a profile page. Each one is plain data in, markup out, so they
 // are server components and ship no JavaScript (the play buttons inside are the exception).
@@ -72,6 +72,20 @@ export function Prompt({ prompt }: { prompt: NonNullable<FullProfile["prompt"]> 
       {/* The prompt is the heading, so a screen reader hears the question before the answer. */}
       <h2 className="text-sm opacity-60">{label}</h2>
       <p className="mt-1 break-words text-xl font-semibold leading-snug">“{prompt.answer}”</p>
+    </section>
+  );
+}
+
+/** Favourite artists, with the ones the viewer also picked called out. */
+export function FavoriteArtists({ artists, sharedWithViewer }: { artists: string[]; sharedWithViewer: string[] }) {
+  if (artists.length === 0) return null;
+  return (
+    <section className="flex flex-col gap-2">
+      <Heading>Favourite artists</Heading>
+      <Pills items={artists} label="Favourite artists" />
+      {sharedWithViewer.length > 0 && (
+        <p className="text-sm opacity-80">You both like {joinNames(sharedWithViewer)}.</p>
+      )}
     </section>
   );
 }

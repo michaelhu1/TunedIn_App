@@ -37,6 +37,16 @@ describe("reasonsFor", () => {
   });
 });
 
+describe("shared favourite artists", () => {
+  it("are the reason when there are no plays to compare", () => {
+    expect(reasonsFor({ ...base, shared_favorites: ["SZA", "Frank Ocean"] })).toEqual(["You both like SZA and Frank Ocean"]);
+  });
+  it("give way to artists both people actually play", () => {
+    const r = reasonsFor({ ...base, shared_artists: ["SZA"], shared_favorites: ["Frank Ocean"] });
+    expect(r).toEqual(["You both play SZA"]);
+  });
+});
+
 describe("matchLabel", () => {
   it("shows a score only when there is one", () => {
     expect(matchLabel({ ...base, taste_score: 64 })).toBe("64% match");

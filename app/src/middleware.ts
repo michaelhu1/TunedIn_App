@@ -8,7 +8,7 @@ import { NextResponse, type NextRequest } from "next/server";
 // Whole sections anyone may open: the public charts (/nyu, /nyu/<school>), the privacy
 // policy, and invite links (/invite/<handle>).
 const PUBLIC_PREFIXES = ["/nyu", "/privacy", "/invite"];
-const PUBLIC_PATHS = ["/", "/login", "/icon", "/apple-icon", "/manifest.webmanifest", "/api/cron/lastfm"];
+const PUBLIC_PATHS = ["/", "/login", "/icon", "/apple-icon", "/manifest.webmanifest", "/api/cron/lastfm", "/auth/callback"];
 
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request });

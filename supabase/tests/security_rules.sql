@@ -447,4 +447,22 @@ savepoint s; insert into public.places (cell, name) values ('zzzzz0', 'Fake Plac
 set local role anon;
 \echo '== 74 anon: nearby_areas (ERROR)'
 savepoint s; select * from public.nearby_areas(); rollback to s;
+-- ---------------------------------------------------------------------------
+-- Favourite artists (20261119230000_favorite_artists.sql)
+-- ---------------------------------------------------------------------------
+reset role;
+delete from public.blocks where '00000000-0000-0000-0000-00000000000a' in (blocker_id, blocked_id);
+delete from public.friendships where '00000000-0000-0000-0000-00000000000a' in (requester_id, addressee_id);
+update public.user_settings set ghost_mode = false where user_id in ('00000000-0000-0000-0000-00000000000a', '00000000-0000-0000-0000-00000000000b');
+update public.profiles set favorite_artists = array['Sec Artist One','Sec Artist Two'], open_to = array['new_friends'] where id = '00000000-0000-0000-0000-00000000000a';
+update public.profiles set favorite_artists = array['sec artist one','Other'] where id = '00000000-0000-0000-0000-00000000000b';
+set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-0000-0000-00000000000b","role":"authenticated"}', true);
+\echo '== 75 B writes own favourite artists directly (ERROR: the server sets them after checking the names)'
+savepoint s; update public.profiles set favorite_artists = array['anything i like'] where id = '00000000-0000-0000-0000-00000000000b'; rollback to s;
+\echo '== 76 suggestions report the shared favourite, ignoring upper and lower case (expect Sec Artist One)'
+select shared_favorites from public.people_you_might_click_with(50) where user_id = '00000000-0000-0000-0000-00000000000a';
+reset role;
+\echo '== 77 more than five favourite artists cannot be stored (ERROR)'
+savepoint s; update public.profiles set favorite_artists = array['1','2','3','4','5','6'] where id = '00000000-0000-0000-0000-00000000000a'; rollback to s;
 rollback;
