@@ -95,7 +95,7 @@ export default function FriendButton({ me, friendId, handle, state }: { me: stri
           (confirming ? (
             <>
               <span className="text-sm">Remove @{handle} as a friend?</span>
-              <button type="button" disabled={busy} onClick={remove} className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">
+              <button type="button" disabled={busy} onClick={remove} className="rounded-lg bg-danger px-4 py-2 text-sm font-semibold text-background disabled:opacity-50">
                 Remove
               </button>
               <button type="button" disabled={busy} onClick={() => setConfirming(false)} className="text-sm underline opacity-70">
@@ -109,7 +109,7 @@ export default function FriendButton({ me, friendId, handle, state }: { me: stri
           ))}
       </div>
       {error && (
-        <p role="alert" className="text-sm text-red-500">
+        <p role="alert" className="text-sm text-danger">
           {error}
         </p>
       )}

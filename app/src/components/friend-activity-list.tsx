@@ -17,7 +17,7 @@ export default function FriendActivityList({ friends, activeOnly = false }: { fr
           <Link href={`/u/${f.handle}`} className="relative shrink-0" aria-label={`@${f.handle}'s profile`}>
             <Avatar handle={f.handle} src={f.avatarUrl} size={44} />
             {f.live && (
-              <span aria-hidden className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-2 border-background bg-green-500" />
+              <span aria-hidden className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-2 border-background bg-live" />
             )}
           </Link>
           <div className="min-w-0 flex-1">

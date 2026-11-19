@@ -72,7 +72,7 @@ export default async function DiscoverPage() {
                     </p>
                   </div>
                   {match && (
-                    <span className="whitespace-nowrap rounded-full bg-foreground px-2.5 py-1 text-xs font-semibold text-background">
+                    <span className="whitespace-nowrap rounded-full bg-accent px-2.5 py-1 text-xs font-semibold text-accent-foreground">
                       {match}
                     </span>
                   )}

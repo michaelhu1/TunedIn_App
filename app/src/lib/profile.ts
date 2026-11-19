@@ -32,7 +32,7 @@ export const LINK_HOSTS = [
 
 export type ProfileTrack = { trackId: string; title: string; artist: string; artworkUrl: string | null };
 export type ProfileFavorite = ProfileTrack & { position: number };
-export type ProfileLink = { position: number; title: string; url: string };
+export type ProfileLink = { position: number; title: string; url: string; imageUrl: string | null };
 export type ProfileTopTrack = ProfileTrack & { plays: number };
 export type ProfileConcert = {
   position: number;
@@ -100,7 +100,7 @@ export async function getFullProfile(supabase: SupabaseClient, handle: string): 
       .select("position, track:tracks(id, title, artist, artwork_url)")
       .eq("user_id", p.id)
       .order("position"),
-    supabase.from("profile_links").select("position, title, url").eq("user_id", p.id).order("position"),
+    supabase.from("profile_links").select("position, title, url, image_url").eq("user_id", p.id).order("position"),
     supabase.rpc("profile_top_tracks", { p_user_id: p.id, p_limit: 5 }),
     supabase.rpc("profile_top_artists", { p_user_id: p.id, p_limit: 5 }),
     supabase
@@ -150,7 +150,12 @@ export async function getFullProfile(supabase: SupabaseClient, handle: string): 
     favorites: ((favs.data ?? []) as unknown as { position: number; track: TrackJoin | null }[])
       .filter((f) => f.track)
       .map((f) => ({ position: f.position, ...toTrack(f.track!) })),
-    links: (links.data ?? []) as ProfileLink[],
+    links: ((links.data ?? []) as { position: number; title: string; url: string; image_url: string | null }[]).map((l) => ({
+      position: l.position,
+      title: l.title,
+      url: l.url,
+      imageUrl: l.image_url,
+    })),
     topTracks: ((topTracks.data ?? []) as { track_id: string; title: string; artist: string; artwork_url: string | null; plays: number }[]).map(
       (t) => ({ trackId: t.track_id, title: t.title, artist: t.artist, artworkUrl: t.artwork_url, plays: t.plays }),
     ),

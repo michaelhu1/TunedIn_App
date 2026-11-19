@@ -182,7 +182,7 @@ export function NowPlaying({ track }: { track: NonNullable<FullProfile["nowPlayi
   return (
     <section aria-label="Now playing" className="rounded-xl border border-foreground/15 p-4">
       <p className="mb-2 text-xs uppercase tracking-wide opacity-60">
-        {live ? <><span className="text-green-500" aria-hidden>●</span> Live now</> : "Earlier today"}
+        {live ? <><span className="text-live" aria-hidden>●</span> Live now</> : "Earlier today"}
       </p>
       <div className="flex items-center gap-3">
         <Cover src={track.artworkUrl} size={56} />
@@ -197,12 +197,37 @@ export function NowPlaying({ track }: { track: NonNullable<FullProfile["nowPlayi
   );
 }
 
+// Layout rule used by the sections below: the number of items decides the layout, so a
+// section always fills its width. One item gets a wide card, two or three share a row,
+// four make a 2x2 block. No half-empty grids.
+const FILL_COLUMNS: Record<number, string> = { 2: "grid-cols-2", 3: "grid-cols-3", 4: "grid-cols-2" };
+
 export function Favorites({ favorites }: { favorites: FullProfile["favorites"] }) {
+  if (favorites.length === 1) {
+    const f = favorites[0];
+    return (
+      <section>
+        <Heading>On repeat right now</Heading>
+        <div className="flex items-center gap-4 rounded-xl border border-foreground/15 p-3">
+          {f.artworkUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={f.artworkUrl} alt="" loading="lazy" className="h-28 w-28 shrink-0 rounded-lg object-cover" />
+          ) : (
+            <div className="h-28 w-28 shrink-0 rounded-lg bg-foreground/10" />
+          )}
+          <div className="min-w-0 flex-1">
+            <p className="line-clamp-2 text-lg font-semibold leading-tight">{f.title}</p>
+            <p className="mt-1 truncate text-sm opacity-70">{f.artist}</p>
+            <PreviewButton trackId={f.trackId} className="mt-3" />
+          </div>
+        </div>
+      </section>
+    );
+  }
   return (
     <section>
       <Heading>On repeat right now</Heading>
-      {/* Two across fits a phone; with at most four songs that is a 2x2 grid. */}
-      <ul className="grid grid-cols-2 gap-3">
+      <ul className={`grid gap-3 ${FILL_COLUMNS[favorites.length] ?? "grid-cols-2"}`}>
         {favorites.map((f) => (
           <li key={f.trackId} className="min-w-0">
             <div className="relative">
@@ -224,36 +249,54 @@ export function Favorites({ favorites }: { favorites: FullProfile["favorites"] }
   );
 }
 
+/** A playlist's picture, or a tile with the service's initial when it has none. */
+function PlaylistArt({ src, service, className }: { src: string | null; service: string; className: string }) {
+  return src ? (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src={src} alt="" loading="lazy" className={`${className} rounded-lg object-cover`} />
+  ) : (
+    <span aria-hidden className={`${className} flex items-center justify-center rounded-lg bg-foreground/10 text-xl font-bold opacity-70`}>
+      {service.slice(0, 1)}
+    </span>
+  );
+}
+
 export function Playlists({ links }: { links: FullProfile["links"] }) {
   const usable = links.flatMap((l) => {
     const service = serviceName(l.url);
     return service ? [{ ...l, service }] : [];
   });
   if (usable.length === 0) return null;
+  // noopener: the new tab cannot reach back into this page. noreferrer: the music service
+  // is not told which profile the click came from.
+  const linkProps = { target: "_blank", rel: "noreferrer noopener" } as const;
+
   return (
     <section>
       <Heading>Playlists</Heading>
-      <ul className="flex flex-col gap-2">
-        {usable.map((l) => (
-          <li key={l.position}>
-            <a
-              href={l.url}
-              target="_blank"
-              // noopener: the new tab cannot reach back into this page. noreferrer: the music
-              // service is not told which profile the click came from.
-              rel="noreferrer noopener"
-              className="flex items-center gap-3 rounded-xl border border-foreground/15 px-4 py-3"
-            >
-              <span className="min-w-0 flex-1">
-                <span className="block truncate font-medium">{l.title}</span>
-                <span className="block text-xs opacity-60">{l.service}</span>
-              </span>
-              <span aria-hidden className="opacity-60">↗</span>
-              <span className="sr-only">(opens {l.service} in a new tab)</span>
-            </a>
-          </li>
-        ))}
-      </ul>
+      {usable.length === 1 ? (
+        <a href={usable[0].url} {...linkProps} className="flex items-center gap-4 rounded-xl border border-foreground/15 p-3">
+          <PlaylistArt src={usable[0].imageUrl} service={usable[0].service} className="h-24 w-24 shrink-0" />
+          <span className="min-w-0 flex-1">
+            <span className="line-clamp-2 block text-lg font-semibold leading-tight">{usable[0].title}</span>
+            <span className="mt-1 block text-sm opacity-60">{usable[0].service} ↗</span>
+            <span className="sr-only">(opens {usable[0].service} in a new tab)</span>
+          </span>
+        </a>
+      ) : (
+        <ul className={`grid gap-3 ${FILL_COLUMNS[usable.length] ?? "grid-cols-2"}`}>
+          {usable.map((l) => (
+            <li key={l.position} className="min-w-0">
+              <a href={l.url} {...linkProps} className="block">
+                <PlaylistArt src={l.imageUrl} service={l.service} className="aspect-square w-full" />
+                <span className="mt-1.5 block truncate text-sm font-medium">{l.title}</span>
+                <span className="block text-xs opacity-60">{l.service} ↗</span>
+                <span className="sr-only">(opens {l.service} in a new tab)</span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      )}
     </section>
   );
 }

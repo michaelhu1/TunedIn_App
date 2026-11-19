@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { requireProfile } from "@/lib/auth";
-import { getFriendsTopArtists, getFriendsTopTracks, getSchools } from "@/lib/charts";
+import { getFriendsLeaderboard, getFriendsTopArtists, getFriendsTopTracks, getSchools } from "@/lib/charts";
+import Avatar from "@/components/avatar";
 import { createClient } from "@/lib/supabase/server";
 import Cover from "@/components/cover";
 import OpenInSpotify from "@/components/open-in-spotify";
@@ -19,11 +20,12 @@ function who(handles: string[], me: string): string {
 export default async function FriendsChartView() {
   const profile = await requireProfile();
   const supabase = await createClient();
-  const [tracks, artists, schools, { count: friendCount }] = await Promise.all([
+  const [tracks, artists, schools, { count: friendCount }, leaderboard] = await Promise.all([
     getFriendsTopTracks(supabase),
     getFriendsTopArtists(supabase),
     getSchools(supabase),
     supabase.from("my_friendships").select("friend_id", { count: "exact", head: true }).eq("status", "accepted"),
+    getFriendsLeaderboard(supabase),
   ]);
 
   return (
@@ -45,6 +47,29 @@ export default async function FriendsChartView() {
         <p className="text-sm opacity-60">Nothing yet this week from you or your friends.</p>
       ) : (
         <>
+          {/* Friendly competition: who listened most this week. Everyone in your circle is
+              listed, so someone with a quiet week still appears, at the bottom. */}
+          <section>
+            <h2 className="mb-2 text-xs uppercase tracking-wide opacity-60">Leaderboard</h2>
+            <ol className="flex flex-col">
+              {leaderboard.map((l) => (
+                <li key={l.handle} className={`flex items-center gap-3 rounded-lg py-2 ${l.is_me ? "bg-foreground/5 px-2" : ""}`}>
+                  <span className="w-6 text-right text-sm tabular-nums opacity-60">{l.rank}</span>
+                  <Link href={`/u/${l.handle}`} aria-hidden tabIndex={-1}>
+                    <Avatar handle={l.handle} src={l.avatar_url} size={40} />
+                  </Link>
+                  <Link href={`/u/${l.handle}`} className="min-w-0 flex-1 truncate font-medium">
+                    {l.is_me ? "You" : l.display_name ?? `@${l.handle}`}
+                  </Link>
+                  <span className="whitespace-nowrap text-right text-sm tabular-nums">
+                    <span className="font-semibold">{l.plays.toLocaleString()}</span>
+                    <span className="opacity-60"> {l.plays === 1 ? "play" : "plays"} · {l.songs} {l.songs === 1 ? "song" : "songs"}</span>
+                  </span>
+                </li>
+              ))}
+            </ol>
+          </section>
+
           <section>
             <h2 className="mb-2 text-xs uppercase tracking-wide opacity-60">Top songs</h2>
             <ol className="flex flex-col">

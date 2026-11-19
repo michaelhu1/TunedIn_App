@@ -75,7 +75,7 @@ export default function PromptForm({
             <label htmlFor="prompt-answer" className="text-sm opacity-80">
               Your answer
             </label>
-            <span id="prompt-count" className={`text-xs ${length > PROMPT_ANSWER_MAX ? "text-red-500" : "opacity-60"}`}>
+            <span id="prompt-count" className={`text-xs ${length > PROMPT_ANSWER_MAX ? "text-danger" : "opacity-60"}`}>
               {length}/{PROMPT_ANSWER_MAX}
             </span>
           </div>

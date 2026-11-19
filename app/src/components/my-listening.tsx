@@ -38,7 +38,7 @@ export default function MyListening({ stats, range }: { stats: MyStats; range: R
               scroll={false}
               aria-current={r.key === range ? "page" : undefined}
               className={`rounded-full border px-2.5 py-1 ${
-                r.key === range ? "border-foreground bg-foreground text-background" : "border-foreground/20"
+                r.key === range ? "border-accent bg-accent text-accent-foreground" : "border-foreground/20"
               }`}
             >
               {r.label}

@@ -477,4 +477,38 @@ savepoint s; select public.admin_stats(); rollback to s;
 reset role;
 \echo '== 79 the admin numbers contain totals only: no emails, handles or ids (expect f)'
 select public.admin_stats()::text ~* '(@nyu\.edu|alice|bob|00000000-0000-0000-0000-00000000000a)' as leaks_identity;
+-- ---------------------------------------------------------------------------
+-- Tester feedback changes (20261120010000_tester_feedback.sql)
+-- ---------------------------------------------------------------------------
+reset role;
+delete from public.blocks where '00000000-0000-0000-0000-00000000000a' in (blocker_id, blocked_id);
+delete from public.friendships where '00000000-0000-0000-0000-00000000000a' in (requester_id, addressee_id);
+insert into public.friendships (requester_id, addressee_id, status, accepted_at) values ('00000000-0000-0000-0000-00000000000a', '00000000-0000-0000-0000-00000000000b', 'accepted', now());
+update public.user_settings set ghost_mode = false where user_id in ('00000000-0000-0000-0000-00000000000a', '00000000-0000-0000-0000-00000000000b');
+update public.profiles set show_stats = true where id in ('00000000-0000-0000-0000-00000000000a', '00000000-0000-0000-0000-00000000000b');
+delete from public.profile_links where user_id = '00000000-0000-0000-0000-00000000000b';
+set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-0000-0000-00000000000b","role":"authenticated"}', true);
+\echo '== 80 five genres are accepted (1); six are refused (ERROR)'
+with u as (update public.profiles set genres = array['pop','rock','jazz','soul','indie'] where id = '00000000-0000-0000-0000-00000000000b' returning 1) select count(*) as saved from u;
+savepoint s; update public.profiles set genres = array['pop','rock','jazz','soul','indie','folk'] where id = '00000000-0000-0000-0000-00000000000b'; rollback to s;
+\echo '== 81 B adds a playlist link (1) but cannot set its picture, on insert or later (ERROR, ERROR)'
+with i as (insert into public.profile_links (user_id, position, title, url) values ('00000000-0000-0000-0000-00000000000b', 1, 'Mix', 'https://open.spotify.com/playlist/abc') returning 1) select count(*) as added from i;
+savepoint s; insert into public.profile_links (user_id, position, title, url, image_url) values ('00000000-0000-0000-0000-00000000000b', 2, 'Mix 2', 'https://open.spotify.com/playlist/def', 'https://i.scdn.co/image/x'); rollback to s;
+savepoint s; update public.profile_links set image_url = 'https://i.scdn.co/image/x' where user_id = '00000000-0000-0000-0000-00000000000b'; rollback to s;
+reset role;
+\echo '== 82 even the server cannot store a picture hosted somewhere unknown (ERROR)'
+savepoint s; update public.profile_links set image_url = 'https://evil.example/pixel.gif' where user_id = '00000000-0000-0000-0000-00000000000b'; rollback to s;
+set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-0000-0000-00000000000b","role":"authenticated"}', true);
+\echo '== 83 friends leaderboard: friend A is listed and B is marked as me (alice 1, me 1)'
+select count(*) filter (where handle = 'alice') as alice_rows, count(*) filter (where is_me) as me_rows from public.chart_friends_top_listeners(7, 50);
+reset role; update public.profiles set show_stats = false where id = '00000000-0000-0000-0000-00000000000a';
+set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-0000-0000-00000000000b","role":"authenticated"}', true);
+\echo '== 84 A hides stats: A leaves the leaderboard (alice 0, me 1)'
+select count(*) filter (where handle = 'alice') as alice_rows, count(*) filter (where is_me) as me_rows from public.chart_friends_top_listeners(7, 50);
+set local role anon;
+\echo '== 85 anon: chart_friends_top_listeners (ERROR)'
+savepoint s; select * from public.chart_friends_top_listeners(); rollback to s;
 rollback;

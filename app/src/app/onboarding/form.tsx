@@ -90,7 +90,7 @@ export default function OnboardingForm({
       <button type="submit" disabled={busy} className="btn mt-2">
         {busy ? "Saving..." : "Continue"}
       </button>
-      {error && <p role="alert" className="text-sm text-red-500">{error}</p>}
+      {error && <p role="alert" className="text-sm text-danger">{error}</p>}
     </form>
   );
 }

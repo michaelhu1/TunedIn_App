@@ -2,6 +2,7 @@ import Link from "next/link";
 import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { getMyStats } from "@/lib/my-stats";
+import AppearanceSettings from "@/components/appearance-settings";
 import Avatar from "@/components/avatar";
 import BlockedList, { type BlockedRow } from "@/components/blocked-list";
 import DeleteAccount from "@/components/delete-account";
@@ -64,6 +65,11 @@ export default async function MePage({ searchParams }: { searchParams: Promise<{
       </header>
 
       <MyListening stats={stats} range={range} />
+
+      <section>
+        <h2 className="mb-3 text-xs uppercase tracking-wide opacity-60">Appearance</h2>
+        <AppearanceSettings />
+      </section>
 
       <section>
         <h2 className="mb-3 text-xs uppercase tracking-wide opacity-60">Privacy</h2>

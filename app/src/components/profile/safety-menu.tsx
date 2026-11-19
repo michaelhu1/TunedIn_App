@@ -109,7 +109,7 @@ export default function SafetyMenu({ me, userId, handle }: { me: string; userId:
             other on the map or send friend requests. They are not told. You can undo this under Me.
           </p>
           <div className="flex gap-3">
-            <button type="button" disabled={busy} onClick={confirmBlock} className="btn bg-red-600 px-4 text-white">
+            <button type="button" disabled={busy} onClick={confirmBlock} className="btn bg-danger px-4 text-background">
               {busy ? "Blocking..." : "Block"}
             </button>
             <button type="button" disabled={busy} onClick={() => setOpen("none")} className="underline opacity-70">
@@ -171,7 +171,7 @@ export default function SafetyMenu({ me, userId, handle }: { me: string; userId:
         </form>
       )}
 
-      {error && <p role="alert" className="text-red-500">{error}</p>}
+      {error && <p role="alert" className="text-danger">{error}</p>}
     </section>
   );
 }

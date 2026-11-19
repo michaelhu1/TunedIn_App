@@ -145,7 +145,7 @@ export default function FavoritesEditor({
             className="field"
           />
           {searchError && (
-            <p role="alert" className="text-sm text-red-500">
+            <p role="alert" className="text-sm text-danger">
               {searchError}
             </p>
           )}

@@ -88,7 +88,7 @@ export default function BasicsForm({
           Bio <span className="opacity-60">(optional)</span>
         </label>
         {/* Counts characters the way the database does, so emoji count as one. */}
-        <span id="bio-count" className={`text-xs ${bioLength > bioMax ? "text-red-500" : "opacity-60"}`}>
+        <span id="bio-count" className={`text-xs ${bioLength > bioMax ? "text-danger" : "opacity-60"}`}>
           {bioLength}/{bioMax}
         </span>
       </div>

@@ -110,15 +110,17 @@ export default async function ProfilePage({ params }: Props) {
         {profile.bio && <p className="whitespace-pre-line break-words">{profile.bio}</p>}
       </header>
 
-      {/* What connects you two comes first: it is the easiest reason to say hi. */}
+      {/* Straight under the header: where to find them and what they are into. */}
+      <Instagram handle={profile.instagram} />
+      <TheirSound genres={profile.genres} roles={profile.musicRoles} note={profile.musicNote} />
+      <FavoriteArtists artists={profile.favoriteArtists} sharedWithViewer={sharedArtists} />
+
+      {/* What connects you two: the easiest reason to say hi. */}
       {profile.tasteMatch && <TasteMatchCard match={profile.tasteMatch} />}
       <OpenTo keys={profile.openTo} />
 
-      {isOwner ? (
-        <Link href="/me/edit" className="btn self-start px-5 py-2 text-sm">
-          Edit profile
-        </Link>
-      ) : (
+      {/* Your own profile has no button here: editing lives under Me. */}
+      {!isOwner && (
         <FriendButton me={viewer.id} friendId={profile.id} handle={profile.handle} state={friendState ?? "none"} />
       )}
 
@@ -126,11 +128,7 @@ export default async function ProfilePage({ params }: Props) {
       {profile.nowPlaying && <NowPlaying track={profile.nowPlaying} />}
       {profile.favorites.length > 0 && <Favorites favorites={profile.favorites} />}
       {profile.links.length > 0 && <Playlists links={profile.links} />}
-      {/* These render nothing when there is nothing (known) to show. */}
-      <FavoriteArtists artists={profile.favoriteArtists} sharedWithViewer={sharedArtists} />
-      <TheirSound genres={profile.genres} roles={profile.musicRoles} note={profile.musicNote} />
       <Concerts concerts={profile.concerts} isOwner={isOwner} />
-      <Instagram handle={profile.instagram} />
       {profile.topTracks.length > 0 && <TopSongs tracks={profile.topTracks} />}
       {profile.topArtists.length > 0 && <TopArtists artists={profile.topArtists} />}
 

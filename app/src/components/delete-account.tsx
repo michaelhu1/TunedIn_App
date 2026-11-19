@@ -32,7 +32,7 @@ export default function DeleteAccount({ handle }: { handle: string }) {
   }
 
   return (
-    <div className="flex flex-col gap-3 rounded-xl border border-red-500/40 p-4 text-sm">
+    <div className="flex flex-col gap-3 rounded-xl border border-danger/40 p-4 text-sm">
       <p className="font-semibold">Delete your account for good?</p>
       <p className="opacity-70">
         This removes your profile, photo, listening history, friends and location straight away. It cannot be
@@ -55,7 +55,7 @@ export default function DeleteAccount({ handle }: { handle: string }) {
           type="button"
           disabled={busy || typed.trim().toLowerCase().replace(/^@/, "") !== handle}
           onClick={remove}
-          className="btn bg-red-600 px-4 text-white"
+          className="btn bg-danger px-4 text-background"
         >
           {busy ? "Deleting..." : "Delete account"}
         </button>
@@ -63,7 +63,7 @@ export default function DeleteAccount({ handle }: { handle: string }) {
           Cancel
         </button>
       </div>
-      {error && <p role="alert" className="text-red-500">{error}</p>}
+      {error && <p role="alert" className="text-danger">{error}</p>}
     </div>
   );
 }

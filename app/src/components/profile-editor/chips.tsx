@@ -25,7 +25,7 @@ export function Chip({
       onClick={onToggle}
       className={`rounded-full border px-3 py-1.5 text-sm transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground disabled:cursor-not-allowed disabled:opacity-40 ${
         pressed
-          ? "border-foreground bg-foreground text-background"
+          ? "border-accent bg-accent text-accent-foreground"
           : "border-foreground/20 hover:bg-foreground/5"
       }`}
     >

@@ -20,11 +20,10 @@ export default async function ConnectPage({ searchParams }: { searchParams: Prom
   return (
     <main className="flex flex-col gap-6">
       <header>
-        <h1 className="text-2xl font-bold">Connect your music</h1>
+        <h1 className="text-2xl font-bold">Connect Spotify</h1>
         <p className="mt-2 text-sm opacity-70">
-          Two steps and your Spotify plays show up here by themselves: they count toward the NYU charts, your
-          stats and your taste matches. TunedIn reads them through Last.fm, a free service that keeps a log of
-          what you play.
+          Two steps, about two minutes, once. After that everything you play on Spotify shows up here by
+          itself and counts toward the charts, your stats and your taste matches.
         </p>
       </header>
 

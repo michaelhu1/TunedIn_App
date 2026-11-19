@@ -118,7 +118,7 @@ export default function FriendsManager({ me, myHandle, rows }: { me: string; myH
           <span className="text-xs opacity-60">Sends your link. Anyone who joins with it asks to be your friend.</span>
         </div>
         {message && (
-          <p role={message.kind === "error" ? "alert" : "status"} className={`text-sm ${message.kind === "error" ? "text-red-500" : "opacity-80"}`}>
+          <p role={message.kind === "error" ? "alert" : "status"} className={`text-sm ${message.kind === "error" ? "text-danger" : "opacity-80"}`}>
             {message.text}
           </p>
         )}
@@ -132,7 +132,7 @@ export default function FriendsManager({ me, myHandle, rows }: { me: string; myH
           <Row key={r.friend_id} row={r}>
             {confirming === r.friend_id ? (
               <>
-                <button disabled={busy} onClick={() => remove(r.friend_id)} className="text-sm font-semibold text-red-500 underline">
+                <button disabled={busy} onClick={() => remove(r.friend_id)} className="text-sm font-semibold text-danger underline">
                   Remove
                 </button>
                 <button disabled={busy} onClick={() => setConfirming(null)} className="text-sm underline opacity-60">

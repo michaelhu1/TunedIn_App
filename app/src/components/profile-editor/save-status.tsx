@@ -24,7 +24,7 @@ export function useSaveState() {
 export default function SaveStatus({ state }: { state: SaveState }) {
   if (state.kind === "error") {
     return (
-      <p role="alert" className="text-sm text-red-500">
+      <p role="alert" className="text-sm text-danger">
         {state.message}
       </p>
     );

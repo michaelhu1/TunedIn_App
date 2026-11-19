@@ -1,22 +1,143 @@
 @import "tailwindcss";
 
+/* Colour themes.
+ *
+ * Every colour in the app comes from seven variables, so a theme is just a set of seven
+ * values:
+ *   background / foreground   the page and its text (secondary text is the foreground faded
+ *                             to 60-70%, borders to 15-20%; never fade text below 60%)
+ *   surface                   raised panels
+ *   accent / accent-foreground  primary buttons, selected chips, the active tab
+ *   live                      the "listening now" dot
+ *   danger                    errors and destructive actions
+ *
+ * The theme is chosen in the app (Me, Appearance) and stored on the device; it sets
+ * data-theme on <html>. With no choice made, the app follows the phone's light or dark
+ * setting. All themes were checked for WCAG contrast: text at least 7:1, faded text and
+ * button labels at least 4.5:1.
+ */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  color-scheme: light;
+  --background: #FFFFFF;
+  --foreground: #141317;
+  --surface: #F6F5F8;
+  --accent: #57068C;
+  --accent-foreground: #FFFFFF;
+  --live: #16A34A;
+  --danger: #C62828;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    color-scheme: dark;
+    --background: #0E0E11;
+    --foreground: #F2F1F5;
+    --surface: #19181D;
+    --accent: #B9A2FF;
+    --accent-foreground: #170A35;
+    --live: #34D399;
+    --danger: #F87171;
+  }
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+  --background: #FFFFFF;
+  --foreground: #141317;
+  --surface: #F6F5F8;
+  --accent: #57068C;
+  --accent-foreground: #FFFFFF;
+  --live: #16A34A;
+  --danger: #C62828;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --background: #0E0E11;
+  --foreground: #F2F1F5;
+  --surface: #19181D;
+  --accent: #B9A2FF;
+  --accent-foreground: #170A35;
+  --live: #34D399;
+  --danger: #F87171;
+}
+
+:root[data-theme="paper"] {
+  color-scheme: light;
+  --background: #F2EBDC;
+  --foreground: #17120B;
+  --surface: #F7F1E4;
+  --accent: #27329F;
+  --accent-foreground: #F7F1E4;
+  --live: #B8390A;
+  --danger: #9B1C26;
+}
+
+:root[data-theme="prussian"] {
+  color-scheme: dark;
+  --background: #0F1E33;
+  --foreground: #F1E6CF;
+  --surface: #17283F;
+  --accent: #E8C547;
+  --accent-foreground: #1A1400;
+  --live: #5FD49A;
+  --danger: #FF8A7A;
+}
+
+:root[data-theme="cobalt"] {
+  color-scheme: dark;
+  --background: #1D3488;
+  --foreground: #F6F0DE;
+  --surface: #243D96;
+  --accent: #F4D23C;
+  --accent-foreground: #14214F;
+  --live: #FF8A5B;
+  --danger: #FFB3A7;
+}
+
+:root[data-theme="mars"] {
+  color-scheme: dark;
+  --background: #1A1420;
+  --foreground: #E6DCCB;
+  --surface: #241C2B;
+  --accent: #E59AA5;
+  --accent-foreground: #1A1420;
+  --live: #6FD3B8;
+  --danger: #FF8F80;
+}
+
+:root[data-theme="hermosa"] {
+  color-scheme: light;
+  --background: #FBEDEE;
+  --foreground: #15111F;
+  --surface: #FFF7F7;
+  --accent: #1F5FA8;
+  --accent-foreground: #FFFFFF;
+  --live: #1E7D45;
+  --danger: #B42318;
+}
+
+:root[data-theme="grenadine"] {
+  color-scheme: dark;
+  --background: #161012;
+  --foreground: #F6EEE6;
+  --surface: #211A1C;
+  --accent: #FF5A3C;
+  --accent-foreground: #1A0500;
+  --live: #4ADE80;
+  --danger: #FF8FA3;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-live: var(--live);
+  --color-danger: var(--danger);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
 }
 
 body {
@@ -30,6 +151,26 @@ body {
     @apply rounded-lg border border-foreground/20 bg-transparent px-3 py-3 text-base outline-none focus-within:border-foreground/60 focus:border-foreground/60;
   }
   .btn {
-    @apply rounded-lg bg-foreground py-3 text-center font-semibold text-background transition disabled:opacity-50;
+    @apply rounded-lg bg-accent py-3 text-center font-semibold text-accent-foreground transition disabled:opacity-50;
   }
+}
+
+/* Heading typeface (Me, Appearance). Only page titles and names change: the two typefaces
+ * on trial are display faces that turn thin and hard to read at the small sizes used for
+ * song lists, labels and numbers, and they have no Korean, Japanese or Chinese characters,
+ * so everything that can contain a song or artist name stays in the regular sans. */
+:root[data-font="instrument"] h1 {
+  font-family: var(--font-instrument), "Hiragino Mincho ProN", "Songti SC", serif;
+  /* This typeface has a single weight; do not let the browser fake a bold. */
+  font-weight: 400;
+  font-synthesis: none;
+  font-size: 1.2em;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+}
+:root[data-font="playfair"] h1 {
+  font-family: var(--font-playfair), "Hiragino Mincho ProN", "Songti SC", serif;
+  font-weight: 700;
+  font-variant-numeric: lining-nums;
+  letter-spacing: -0.01em;
 }

@@ -41,7 +41,7 @@ export default function BlockedList({ me, rows }: { me: string; rows: BlockedRow
           </li>
         ))}
       </ul>
-      {error && <p role="alert" className="text-sm text-red-500">{error}</p>}
+      {error && <p role="alert" className="text-sm text-danger">{error}</p>}
     </div>
   );
 }

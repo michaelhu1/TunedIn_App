@@ -30,7 +30,7 @@ export default function TabBar({ pendingRequests = 0 }: { pendingRequests?: numb
               >
                 <span className="relative">
                   {t.label}
-                  {badge && <span aria-hidden className="absolute -right-2.5 -top-1 h-2 w-2 rounded-full bg-red-600" />}
+                  {badge && <span aria-hidden className="absolute -right-2.5 -top-1 h-2 w-2 rounded-full bg-danger" />}
                 </span>
               </Link>
             </li>

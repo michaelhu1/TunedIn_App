@@ -8,6 +8,8 @@ import { useEffect, useState } from "react";
 // stops whichever one was playing. Clip links come from /api/preview at the moment you
 // press play, because Deezer's links expire after about 15 minutes.
 
+const PREVIEW_VOLUME = 0.35;
+
 let player: HTMLAudioElement | null = null;
 let playingKey: string | null = null;
 const listeners = new Set<(key: string | null) => void>();
@@ -59,6 +61,9 @@ export default function PreviewButton({
     if (!body.url) return setState("none");
 
     player ??= new Audio();
+    // Previews start quieter than full volume: they often play over whatever else is on, and a
+    // sudden loud clip is unpleasant. (iPhones ignore this and use the phone's own volume.)
+    player.volume = PREVIEW_VOLUME;
     player.src = body.url;
     player.onended = () => setPlaying(null);
     try {
@@ -78,7 +83,7 @@ export default function PreviewButton({
       aria-label={label}
       title={label}
       disabled={state === "none"}
-      className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-foreground text-sm text-background disabled:opacity-30 ${className}`}
+      className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent text-sm text-accent-foreground disabled:opacity-30 ${className}`}
     >
       {state === "playing" ? "■" : state === "loading" ? "…" : state === "none" ? "–" : "▶"}
     </button>

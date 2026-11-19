@@ -70,7 +70,7 @@ export default async function HomePage() {
         >
           Friends
           {pending > 0 && (
-            <span className="absolute -right-1.5 -top-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1 text-xs font-bold text-white">
+            <span className="absolute -right-1.5 -top-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-danger px-1 text-xs font-bold text-background">
               {pending}
             </span>
           )}
@@ -159,7 +159,7 @@ export default async function HomePage() {
                     <Avatar handle={p.handle} src={p.avatar_url} size={56} />
                     <p className="w-full truncate text-sm font-semibold">{p.display_name ?? `@${p.handle}`}</p>
                     {match && (
-                      <span className="rounded-full bg-foreground px-2 py-0.5 text-xs font-semibold text-background">{match}</span>
+                      <span className="rounded-full bg-accent px-2 py-0.5 text-xs font-semibold text-accent-foreground">{match}</span>
                     )}
                     {reason && <p className="line-clamp-3 text-xs opacity-70">{reason}</p>}
                   </Link>
