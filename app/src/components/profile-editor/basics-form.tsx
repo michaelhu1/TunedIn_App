@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { charLength, classYearOptions, parseClassYear, validateOptionalText } from "@/lib/profile-validation";
+import { charLength, classYearOptions, parseClassYear, validateOptionalText, blockedWordMessage } from "@/lib/profile-validation";
 import SaveStatus, { useSaveState } from "./save-status";
 
 export type School = { id: string; name: string };
@@ -58,6 +58,8 @@ export default function BasicsForm({
       .eq("id", userId);
     if (error) {
       console.error(error);
+      const wording = blockedWordMessage(error);
+      if (wording) return save.failed(wording);
       // 23514 = a check constraint said no. Our checks above mirror them, so this should
       // only happen if the rules change; the message stays general on purpose.
       return save.failed(error.code === "23514" ? "Something there is too long. Shorten it and try again." : "Could not save. Try again.");

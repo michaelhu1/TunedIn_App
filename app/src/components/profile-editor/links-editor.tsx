@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 // Type-only import: erased at build time, so the server-only module is not bundled here.
 import type { ProfileLink } from "@/lib/profile";
 import { createClient } from "@/lib/supabase/client";
-import { firstFreePosition, LINK_TITLE_MAX, serviceList, validateLink } from "@/lib/profile-validation";
+import { firstFreePosition, LINK_TITLE_MAX, serviceList, validateLink, blockedWordMessage } from "@/lib/profile-validation";
 import SaveStatus, { useSaveState } from "./save-status";
 
 // Playlist links, up to `max`. Written straight to the database: the owner may add and
@@ -46,6 +46,8 @@ export default function LinksEditor({
       .insert({ user_id: userId, ...row });
     if (error) {
       console.error(error);
+      const wording = blockedWordMessage(error);
+      if (wording) return save.failed(wording);
       // 23514 = the database's own check refused it (should be rare after our check).
       // 23505 = that slot is taken, most likely by an edit in another tab.
       return save.failed(

@@ -105,7 +105,7 @@ export async function syncLastfmUser(admin: SupabaseClient, target: SyncTarget):
 }
 
 /** How stale someone's data must be before we ask Last.fm again. Keeps us polite to their API. */
-export const MIN_SECONDS_BETWEEN_SYNCS = 90;
+export const MIN_SECONDS_BETWEEN_SYNCS = 45;
 
 export function isStale(syncedAt: string | null): boolean {
   return !syncedAt || Date.now() - new Date(syncedAt).getTime() > MIN_SECONDS_BETWEEN_SYNCS * 1000;

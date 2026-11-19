@@ -26,7 +26,7 @@ It is triggered in two places:
 | Trigger | Where | What it refreshes |
 |---|---|---|
 | Someone opens Home or the Map | `POST /api/lastfm/sync` | Their own plays, then up to 5 friends whose data is stale |
-| Every 2 minutes | `GET /api/cron/lastfm` | The 12 connected people whose data is oldest |
+| Every minute | `GET /api/cron/lastfm` | The 12 connected people whose data is oldest |
 
 The first trigger alone keeps the app working. The second keeps charts and the map fresh
 when nobody happens to be looking.
@@ -47,7 +47,7 @@ The schedule runs inside the Supabase database and calls the deployed app.
 
    select cron.schedule(
      'tunedin-lastfm',
-     '*/2 * * * *',
+     '* * * * *',
      $$
      select net.http_get(
        url := 'https://tuned-in-app.vercel.app/api/cron/lastfm',
@@ -66,9 +66,9 @@ The secret lives only in Vercel and in that one scheduled job. It is not in the 
 ## Limits to know about
 
 - **Politeness to Last.fm.** One request per person per run, a short pause between people,
-  and nobody is re-checked within 90 seconds. Last.fm publishes no hard number, but asks
+  and nobody is re-checked within 45 seconds. Last.fm publishes no hard number, but asks
   apps not to make several calls a second.
-- **Capacity.** 12 people every 2 minutes is 360 an hour. With more connected people than
+- **Capacity.** 12 people every minute is 720 an hour. With more connected people than
   that, each person is refreshed less often by the schedule, though opening the app still
   refreshes them at once. Raise `USERS_PER_RUN` or shorten the schedule when it matters.
 - **First connection.** The first import looks back 7 days and takes a few runs to finish,

@@ -583,4 +583,14 @@ select set_config('request.jwt.claims','{"sub":"00000000-0000-0000-0000-00000000
 update public.profile_links set url = 'https://open.spotify.com/playlist/zzz' where user_id = '00000000-0000-0000-0000-00000000000b';
 reset role;
 select image_url is null as cleared from public.profile_links where user_id = '00000000-0000-0000-0000-00000000000b';
+set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-0000-0000-00000000000b","role":"authenticated"}', true);
+\echo '== 96 slurs are refused in a bio, a handle with digits swapped in, and a playlist title (ERROR x3)'
+savepoint s; update public.profiles set bio = 'what a f4ggot' where id = '00000000-0000-0000-0000-00000000000b'; rollback to s;
+savepoint s; update public.profiles set handle = 'f4ggot_99' where id = '00000000-0000-0000-0000-00000000000b'; rollback to s;
+savepoint s; update public.profile_links set title = 'songs for faggots' where user_id = '00000000-0000-0000-0000-00000000000b'; rollback to s;
+\echo '== 97 ordinary swearing, casual words and innocent look-alikes are accepted (1, 1)'
+with u as (update public.profiles set bio = 'this album is fucking great, my nigga' where id = '00000000-0000-0000-0000-00000000000b' returning 1) select count(*) as saved from u;
+with u as (update public.profiles set hometown = 'Niamey, Niger', bio = 'born in Scunthorpe' where id = '00000000-0000-0000-0000-00000000000b' returning 1) select count(*) as saved from u;
+reset role;
 rollback;

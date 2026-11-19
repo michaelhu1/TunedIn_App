@@ -158,12 +158,12 @@ export async function getFullProfile(supabase: SupabaseClient, handle: string): 
     })),
     topTracks: ((topTracks.data ?? []) as { track_id: string; title: string; artist: string; artwork_url: string | null; plays: number }[]).map(
       (t) => ({ trackId: t.track_id, title: t.title, artist: t.artist, artworkUrl: t.artwork_url, plays: t.plays }),
-    ),
+    ).filter((t) => t.plays >= 2), // ranked only when played more than once
     topArtists: ((topArtists.data ?? []) as { artist: string; artwork_url: string | null; plays: number }[]).map((a) => ({
       artist: a.artist,
       artworkUrl: a.artwork_url,
       plays: a.plays,
-    })),
+    })).filter((a) => a.plays >= 2),
     nowPlaying: presenceRow?.track ? { ...toTrack(presenceRow.track), updatedAt: presenceRow.updated_at } : null,
   };
 }

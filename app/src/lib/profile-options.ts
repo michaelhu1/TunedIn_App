@@ -70,3 +70,21 @@ export const MAX_CONCERTS = 6;
 export const CONCERT_TEXT_MAX = 80;
 export const CONCERT_STATUS = { going: "Going to", went: "Went to" } as const;
 export type ConcertStatusKey = keyof typeof CONCERT_STATUS;
+
+/** Common NYU majors, offered as suggestions while typing. The field stays free text, so
+ *  anything not listed here ("other") can simply be typed. */
+export const MAJOR_SUGGESTIONS = [
+  "Accounting", "Africana Studies", "Anthropology", "Applied Psychology", "Art History", "Biochemistry", "Biology",
+  "Biomedical Engineering", "Business", "Business and Technology Management", "Chemical Engineering", "Chemistry",
+  "Cinema Studies", "Civil Engineering", "Classics", "Collaborative Arts", "Comparative Literature",
+  "Computer Engineering", "Computer Science", "Creative Writing", "Dance", "Data Science", "Drama",
+  "Dramatic Writing", "East Asian Studies", "Economics", "Education", "Electrical Engineering", "English",
+  "Environmental Studies", "Film and Television", "Finance", "French", "Game Design", "Global Liberal Studies",
+  "Global Public Health", "History", "Hospitality", "Individualized Study", "Integrated Design and Media",
+  "Interactive Media Arts", "International Relations", "Journalism", "Liberal Studies", "Linguistics", "Marketing",
+  "Mathematics", "Mechanical Engineering", "Media, Culture, and Communication", "Middle Eastern Studies",
+  "Music Business", "Music Composition", "Music Education", "Music Performance", "Music Technology",
+  "Neural Science", "Nursing", "Nutrition", "Philosophy", "Photography and Imaging", "Physics", "Politics",
+  "Psychology", "Public Policy", "Real Estate", "Recorded Music", "Social Work", "Sociology", "Spanish",
+  "Sports Management", "Studio Art", "Undecided", "Urban Design",
+] as const;

@@ -1,5 +1,6 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { listeningDay } from "@/lib/listening-day";
 
 // What your friends are playing, for Home and the People tab.
 //
@@ -130,7 +131,7 @@ export async function getFriendsToday(supabase: SupabaseClient, meId: string): P
   const dayAgo = new Date(Date.now() - 24 * 3600_000).toISOString();
   const today = new Date().toLocaleDateString("en-CA", { timeZone: "America/New_York" });
   // The app's day runs 4am to 4am in New York, the same rule the database uses.
-  const listeningDay = new Date(Date.now() - 4 * 3600_000).toLocaleDateString("en-CA", { timeZone: "America/New_York" });
+  const today4am = listeningDay();
 
   const [same, overlap, concerts, received, sent] = await Promise.all([
     supabase.rpc("friend_same_songs_today"),
@@ -147,7 +148,7 @@ export async function getFriendsToday(supabase: SupabaseClient, meId: string): P
       .eq("receiver_id", meId)
       .gt("created_at", dayAgo)
       .order("created_at", { ascending: false }),
-    supabase.from("song_reactions").select("receiver_id, track_id").eq("sender_id", meId).eq("day", listeningDay),
+    supabase.from("song_reactions").select("receiver_id, track_id").eq("sender_id", meId).eq("day", today4am),
   ]);
 
   const overlapById = new Map(((overlap.data ?? []) as { friend_id: string; shared_artists: number }[]).map((o) => [o.friend_id, o.shared_artists]));

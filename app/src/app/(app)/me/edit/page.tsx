@@ -5,8 +5,11 @@ import { BIO_MAX, DISPLAY_NAME_MAX, getFullProfile, LINK_HOSTS, MAX_FAVORITES, M
 import { getPopularArtists } from "@/lib/sources/artists";
 import { createClient } from "@/lib/supabase/server";
 import ProfileEditor from "@/components/profile-editor/profile-editor";
+import { EDITOR_TABS, type EditorTab } from "@/components/profile-editor/tabs";
 
-export default async function EditProfilePage() {
+export default async function EditProfilePage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
+  const wanted = (await searchParams).tab;
+  const tab: EditorTab = EDITOR_TABS.find((t) => t.id === wanted)?.id ?? "you";
   const me = await requireProfile();
   const supabase = await createClient();
 
@@ -33,7 +36,7 @@ export default async function EditProfilePage() {
         </Link>
         <h1 className="mt-2 text-3xl font-bold">Edit profile</h1>
         <p className="mt-1 text-sm opacity-70">
-          Laid out in the same order as your profile. Everything here is visible to other signed-in members.{" "}
+          Everything here is visible to other signed-in members.{" "}
           <Link href="/me" className="underline">
             See your profile
           </Link>
@@ -41,6 +44,7 @@ export default async function EditProfilePage() {
       </header>
 
       <ProfileEditor
+        tab={tab}
         profile={profile}
         schools={schools ?? []}
         popularArtists={popularArtists}

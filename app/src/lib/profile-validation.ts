@@ -283,3 +283,9 @@ export function formatConcertDate(isoDate: string): string {
   if (!m) return isoDate;
   return `${MONTHS[Number(m[2]) - 1]} ${Number(m[3])}, ${m[1]}`;
 }
+
+/** The database refuses slurs in profile text (see the blocked_words migration). This turns
+ *  that refusal into a sentence for the person; null means the error was something else. */
+export function blockedWordMessage(error: { message?: string } | null | undefined): string | null {
+  return error?.message?.includes("blocked_word") ? "That wording is not allowed on TunedIn. Change it and try again." : null;
+}

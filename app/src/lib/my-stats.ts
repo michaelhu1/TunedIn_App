@@ -1,3 +1,4 @@
+import { listeningDay, windowStartDay } from "@/lib/listening-day";
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
@@ -39,7 +40,11 @@ export async function getMyStats(supabase: SupabaseClient, userId: string, days:
   if (days) query = query.gte("played_at", new Date(Date.now() - days * 86_400_000).toISOString());
 
   const { data } = await query;
-  const rows = ((data ?? []) as unknown as Row[]).filter((r) => r.track);
+  // The query above reaches back `days` x 24 hours, which touches one calendar day too many
+  // (it once showed "8 days" for a week). Keep only whole listening days: today and the
+  // days - 1 before it.
+  const firstDay = days ? windowStartDay(days) : null;
+  const rows = ((data ?? []) as unknown as Row[]).filter((r) => r.track && (!firstDay || listeningDay(r.played_at) >= firstDay));
 
   const tracks = new Map<string, MyTrack>();
   const artists = new Map<string, MyArtist>();
@@ -55,7 +60,7 @@ export async function getMyStats(supabase: SupabaseClient, userId: string, days:
     artist.plays++;
     artists.set(t.artist, artist);
 
-    dayKeys.add(new Date(r.played_at).toLocaleDateString("en-US", { timeZone: "America/New_York" }));
+    dayKeys.add(listeningDay(r.played_at));
   }
 
   // Most plays first; ties keep the more recently played one first (rows arrive newest first).
@@ -66,8 +71,10 @@ export async function getMyStats(supabase: SupabaseClient, userId: string, days:
     differentSongs: tracks.size,
     differentArtists: artists.size,
     activeDays: dayKeys.size,
-    topTracks: byPlays(tracks).slice(0, 5),
-    topArtists: byPlays(artists).slice(0, 5),
+    // Only things played more than once are ranked (the same rule as MIN_PLAYS_TO_RANK in
+    // src/lib/charts.ts): a single play is not a favourite.
+    topTracks: byPlays(tracks).filter((t) => t.plays >= 2).slice(0, 5),
+    topArtists: byPlays(artists).filter((a) => a.plays >= 2).slice(0, 5),
     recent: rows.slice(0, 3).map((r) => ({
       trackId: r.track!.id,
       title: r.track!.title,
