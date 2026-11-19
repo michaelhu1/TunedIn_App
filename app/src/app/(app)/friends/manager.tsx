@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Avatar from "@/components/avatar";
+import ShareButton from "@/components/share-button";
 import { createClient } from "@/lib/supabase/client";
 import { HANDLE_PATTERN } from "@/lib/validation";
 
@@ -112,6 +113,10 @@ export default function FriendsManager({ me, myHandle, rows }: { me: string; myH
           <button type="submit" disabled={busy || !handle.trim()} className="btn px-4">Add</button>
         </div>
         <p className="text-xs opacity-60">Your handle is @{myHandle}. Friends can add you with it.</p>
+        <div className="flex items-center gap-3 pt-1">
+          <ShareButton path={`/invite/${myHandle}`} title="Join me on TunedIn" label="Invite a friend" />
+          <span className="text-xs opacity-60">Sends your link. Anyone who joins with it asks to be your friend.</span>
+        </div>
         {message && (
           <p role={message.kind === "error" ? "alert" : "status"} className={`text-sm ${message.kind === "error" ? "text-red-500" : "opacity-80"}`}>
             {message.text}

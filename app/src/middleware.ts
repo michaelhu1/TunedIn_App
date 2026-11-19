@@ -5,8 +5,9 @@ import { NextResponse, type NextRequest } from "next/server";
 //   1. Refresh the Supabase session cookie so people stay signed in.
 //   2. Keep signed-out visitors out of the app, and signed-in people off the login page.
 // /api/cron/* is called by the scheduler, not a browser, and checks its own secret.
-// Whole sections anyone may open: the public charts (/nyu, /nyu/<school>) and the privacy policy.
-const PUBLIC_PREFIXES = ["/nyu", "/privacy"];
+// Whole sections anyone may open: the public charts (/nyu, /nyu/<school>), the privacy
+// policy, and invite links (/invite/<handle>).
+const PUBLIC_PREFIXES = ["/nyu", "/privacy", "/invite"];
 const PUBLIC_PATHS = ["/", "/login", "/icon", "/apple-icon", "/manifest.webmanifest", "/api/cron/lastfm"];
 
 export async function middleware(request: NextRequest) {

@@ -11,6 +11,7 @@ import FriendActivityList from "@/components/friend-activity-list";
 import LocationPing from "@/components/location-ping";
 import OpenInSpotify from "@/components/open-in-spotify";
 import PreviewButton from "@/components/preview-button";
+import ShareButton from "@/components/share-button";
 import { matchLabel, reasonsFor, type Suggestion } from "@/components/discover/reasons";
 
 type TrackJoin = { id: string; title: string; artist: string; artwork_url: string | null };
@@ -124,9 +125,12 @@ export default async function HomePage() {
               Add people by their handle, or start with the suggestions below. Once they accept, you will see
               what each of them is playing.
             </p>
-            <Link href="/friends" className="btn mt-3 block">
-              Add friends
-            </Link>
+            <div className="mt-3 flex flex-wrap items-center gap-3">
+              <ShareButton path={`/invite/${profile.handle}`} title="Join me on TunedIn" label="Invite a friend" />
+              <Link href="/friends" className="underline">
+                Add by handle
+              </Link>
+            </div>
           </div>
         ) : (
           <FriendActivityList friends={friends} />
