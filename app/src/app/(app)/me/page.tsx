@@ -19,7 +19,7 @@ export default async function MePage({ searchParams }: { searchParams: Promise<{
   const [{ data: settings }, stats, { data: blocked }, { data: mine }, { count: friendCount }] = await Promise.all([
     supabase
       .from("user_settings")
-      .select("lastfm_username, lastfm_status, lastfm_synced_at, share_location, ghost_mode")
+      .select("lastfm_username, lastfm_status, lastfm_synced_at, share_location, ghost_mode, count_me_nearby")
       .eq("user_id", profile.id)
       .maybeSingle(),
     getMyStats(supabase, profile.id, RANGE_DAYS[range]),
@@ -70,6 +70,7 @@ export default async function MePage({ searchParams }: { searchParams: Promise<{
           userId={profile.id}
           shareLocation={settings?.share_location ?? false}
           ghostMode={settings?.ghost_mode ?? false}
+          countMeNearby={settings?.count_me_nearby ?? true}
         />
       </section>
 

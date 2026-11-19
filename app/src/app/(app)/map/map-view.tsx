@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import type { GeoJSONSource, Map as MapLibreMap, Marker } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import Avatar from "@/components/avatar";
+import LocationOptIn from "@/components/location-opt-in";
 import Cover from "@/components/cover";
 import OpenInSpotify from "@/components/open-in-spotify";
 import PreviewButton from "@/components/preview-button";
@@ -114,11 +115,6 @@ export default function MapView({
     // Run once when the map opens (or when sharing is switched on).
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sharing]);
-
-  async function turnOnSharing() {
-    await createClient().from("user_settings").update({ share_location: true }).eq("user_id", myId);
-    router.refresh();
-  }
 
   // Create the map once. maplibre-gl is loaded here so it never runs on the server.
   useEffect(() => {
@@ -294,11 +290,7 @@ export default function MapView({
       {ghostMode ? (
         <Notice>Ghost mode is on. Friends cannot see you. Change it under Me.</Notice>
       ) : !shareLocation ? (
-        <Notice>
-          <span className="font-semibold">Show up on your friends&apos; maps?</span> They see a zone about 1 km wide, never your
-          exact spot, and only while you have the app open. Your device does the rounding before anything is sent.
-          <button onClick={turnOnSharing} className="btn mt-3 block w-full">Share my rough location</button>
-        </Notice>
+        <LocationOptIn userId={myId} />
       ) : (
         locationNote && <Notice>{locationNote}</Notice>
       )}

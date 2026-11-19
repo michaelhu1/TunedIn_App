@@ -2,11 +2,13 @@ import Link from "next/link";
 import { requireProfile } from "@/lib/auth";
 import { getChartStatus, getTopTracks } from "@/lib/charts";
 import { LIVE_MINUTES, getFriendsActivity, getPendingRequestCount, timeAgo } from "@/lib/friends";
+import { getNearbyAreas } from "@/lib/nearby";
 import { createClient } from "@/lib/supabase/server";
 import AutopilotSync from "@/components/autopilot-sync";
 import Avatar from "@/components/avatar";
 import Cover from "@/components/cover";
 import FriendActivityList from "@/components/friend-activity-list";
+import LocationPing from "@/components/location-ping";
 import OpenInSpotify from "@/components/open-in-spotify";
 import PreviewButton from "@/components/preview-button";
 import { matchLabel, reasonsFor, type Suggestion } from "@/components/discover/reasons";
@@ -17,7 +19,8 @@ type TrackJoin = { id: string; title: string; artist: string; artwork_url: strin
 //   1. You: your song today.
 //   2. Your friends: what each of them is on, live first.
 //   3. People you might click with: a short row of suggestions.
-//   4. Your campus: the top few songs at NYU this week.
+//   4. Around you: how many people are listening in your area and to what (anonymous).
+//   5. Your campus: the top few songs at NYU this week.
 // "Friends" (top right) leads to the page for adding and removing people and answering
 // requests, and carries a red badge when someone is waiting on you.
 //
@@ -27,29 +30,35 @@ export default async function HomePage() {
   const profile = await requireProfile();
   const supabase = await createClient();
 
-  const [presenceRes, settingsRes, friends, pending, suggestedRes, campus, campusStatus] = await Promise.all([
+  const [presenceRes, settingsRes, friends, pending, suggestedRes, campus, campusStatus, areas] = await Promise.all([
     supabase
       .from("presence")
       .select("updated_at, track:tracks(id, title, artist, artwork_url)")
       .eq("user_id", profile.id)
       .gt("expires_at", new Date().toISOString())
       .maybeSingle(),
-    supabase.from("user_settings").select("lastfm_username").eq("user_id", profile.id).maybeSingle(),
+    supabase.from("user_settings").select("lastfm_username, share_location, ghost_mode").eq("user_id", profile.id).maybeSingle(),
     getFriendsActivity(supabase, profile.id),
     getPendingRequestCount(supabase),
     supabase.rpc("people_you_might_click_with", { p_limit: 8 }),
     getTopTracks(supabase, null, 7, 5),
     getChartStatus(supabase, null),
+    getNearbyAreas(supabase),
   ]);
 
   const presence = presenceRes.data as unknown as { updated_at: string; track: TrackJoin | null } | null;
   const live = presence && Date.now() - new Date(presence.updated_at).getTime() < LIVE_MINUTES * 60_000;
   const connected = Boolean(settingsRes.data?.lastfm_username);
   const people = (suggestedRes.data ?? []) as Suggestion[];
+  const sharingLocation = Boolean(settingsRes.data?.share_location) && !settingsRes.data?.ghost_mode;
+  // The area you are in, if it is busy enough to show; otherwise the busiest one anywhere.
+  const area = areas.find((a) => a.myArea) ?? areas[0] ?? null;
 
   return (
     <main className="flex flex-col gap-7">
       <AutopilotSync />
+      {/* Keeps your rough location fresh, but only if you share it and the browser already has permission. */}
+      {sharingLocation && <LocationPing />}
 
       <header className="flex items-center justify-between gap-3">
         <h1 className="text-2xl font-bold">TunedIn</h1>
@@ -154,6 +163,30 @@ export default async function HomePage() {
               );
             })}
           </ul>
+        </section>
+      )}
+
+      {area && (
+        <section>
+          <div className="mb-1 flex items-baseline justify-between">
+            <h2 className="text-xs uppercase tracking-wide opacity-60">{area.myArea ? "Around you" : "Busiest right now"}</h2>
+            <Link href="/map?view=public" className="text-sm underline opacity-70">
+              Public map
+            </Link>
+          </div>
+          <Link href="/map?view=public" className="flex items-center gap-3 rounded-xl border border-foreground/15 p-3">
+            <Cover src={area.topTracks[0]?.artwork_url ?? null} size={48} />
+            <div className="min-w-0 flex-1">
+              <p className="truncate font-semibold">
+                {area.name} · {area.people} listening
+              </p>
+              {area.topTracks[0] && (
+                <p className="truncate text-sm opacity-70">
+                  Top: {area.topTracks[0].title} · {area.topTracks[0].artist}
+                </p>
+              )}
+            </div>
+          </Link>
         </section>
       )}
 
