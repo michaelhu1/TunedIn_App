@@ -8,6 +8,16 @@
 // Limits and the list of allowed link hosts are passed in rather than imported from
 // src/lib/profile.ts, because that file is server-only and cannot be bundled for the browser.
 
+import {
+  CONCERT_STATUS,
+  CONCERT_TEXT_MAX,
+  INSTAGRAM_PATTERN,
+  PROMPT_ANSWER_MAX,
+  PROMPTS,
+  type ConcertStatusKey,
+  type PromptKey,
+} from "./profile-options";
+
 /**
  * Length the way Postgres counts it (`char_length`): one per character, so an emoji is 1.
  * JavaScript's `.length` counts UTF-16 units, which makes many emoji 2 and would reject
@@ -137,4 +147,139 @@ export function firstFreePosition(taken: readonly number[], max: number): number
     if (!taken.includes(p)) return p;
   }
   return null;
+}
+
+// ---------------------------------------------------------------------------
+// Connection fields: Instagram, prompt, chips, concerts
+// ---------------------------------------------------------------------------
+// These import their lists and limits from profile-options.ts directly: unlike profile.ts,
+// that file has no server-only code, so it is safe in the browser bundle.
+
+/**
+ * An Instagram handle, from whatever people paste: "maya.k", "@Maya.K",
+ * "instagram.com/maya.k" or "https://www.instagram.com/maya.k/?hl=en".
+ * Returns the bare lowercase handle to store, or null for an empty box.
+ */
+export function normalizeInstagram(raw: string): Result<string | null> {
+  let text = raw.trim();
+  if (text === "") return { ok: true, value: null };
+
+  // A pasted profile link: keep only the first path segment after the host. Anything
+  // else that looks like a link (another site) falls through and fails the pattern check.
+  const link = text.match(/^(?:https?:\/\/)?(?:www\.|m\.)?instagram\.com\/([^/?#]*)/i);
+  if (link) text = link[1];
+  if (text.startsWith("@")) text = text.slice(1);
+  // Instagram handles are not case-sensitive; storing lowercase keeps them comparable
+  // and matches the database check, which only allows lowercase.
+  text = text.toLowerCase();
+
+  if (text === "") return { ok: false, error: "Type your Instagram handle, like @maya.k." };
+  if (!INSTAGRAM_PATTERN.test(text)) {
+    return {
+      ok: false,
+      error: "Instagram handles are up to 30 letters, numbers, dots or underscores. Type just the handle, like @maya.k.",
+    };
+  }
+  return { ok: true, value: text };
+}
+
+/**
+ * The prompt and its answer, as the two columns to store. The database requires both or
+ * neither, so "No prompt" or an empty answer stores null for both.
+ */
+export function validatePrompt(
+  rawKey: string,
+  rawAnswer: string,
+): Result<{ prompt_key: PromptKey | null; prompt_answer: string | null }> {
+  const answer = cleanText(rawAnswer);
+  if (rawKey === "" || answer === null) return { ok: true, value: { prompt_key: null, prompt_answer: null } };
+  if (!Object.hasOwn(PROMPTS, rawKey)) return { ok: false, error: "Pick a prompt from the list." };
+  if (charLength(answer) > PROMPT_ANSWER_MAX) {
+    return { ok: false, error: `Your answer can be at most ${PROMPT_ANSWER_MAX} characters.` };
+  }
+  return { ok: true, value: { prompt_key: rawKey as PromptKey, prompt_answer: answer } };
+}
+
+/**
+ * Tap a chip: add `value` if it is missing, remove it if present. The result follows the
+ * order of `all` (the option list), not tap order, so the same choices are always stored
+ * the same way. Adding beyond `max` returns the list unchanged.
+ */
+export function toggleChoice<T extends string>(selected: readonly T[], value: T, all: readonly T[], max = Infinity): T[] {
+  const has = selected.includes(value);
+  if (!has && selected.length >= max) return [...selected];
+  const next = has ? selected.filter((v) => v !== value) : [...selected, value];
+  return all.filter((v) => next.includes(v));
+}
+
+export const CONCERT_DATE_MIN = "1990-01-01";
+export const CONCERT_DATE_MAX = "2040-12-31";
+
+export type ConcertInput = { status: string; artist: string; venue: string; date: string };
+export type ConcertRow = { status: ConcertStatusKey; artist: string; venue: string | null; event_date: string | null };
+
+/** "YYYY-MM-DD" that is a real calendar day (so not 2026-02-30). */
+function isRealDate(s: string): boolean {
+  const m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m) return false;
+  const [y, mo, d] = [Number(m[1]), Number(m[2]), Number(m[3])];
+  // Date.UTC rolls 2026-02-30 over to March 2, so a round trip catches impossible days.
+  const back = new Date(Date.UTC(y, mo - 1, d));
+  return back.getUTCFullYear() === y && back.getUTCMonth() === mo - 1 && back.getUTCDate() === d;
+}
+
+/** One concert: status, an artist (required), and an optional venue and date. */
+export function validateConcert(input: ConcertInput): Result<ConcertRow> {
+  if (!Object.hasOwn(CONCERT_STATUS, input.status)) return { ok: false, error: "Pick Going to or Went to." };
+  const artist = cleanText(input.artist);
+  if (artist === null) return { ok: false, error: "Add the artist." };
+  if (charLength(artist) > CONCERT_TEXT_MAX) {
+    return { ok: false, error: `The artist can be at most ${CONCERT_TEXT_MAX} characters.` };
+  }
+  const venue = validateOptionalText(input.venue, CONCERT_TEXT_MAX, "The venue");
+  if (!venue.ok) return venue;
+
+  const date = input.date.trim();
+  if (date !== "") {
+    // Same-length ISO dates compare correctly as strings.
+    if (!isRealDate(date) || date < CONCERT_DATE_MIN || date > CONCERT_DATE_MAX) {
+      return { ok: false, error: "Pick a date between 1990 and 2040, or leave it empty." };
+    }
+  }
+  return {
+    ok: true,
+    value: { status: input.status as ConcertStatusKey, artist, venue: venue.value, event_date: date === "" ? null : date },
+  };
+}
+
+/**
+ * The order concerts are shown in: upcoming shows first, soonest first, then past shows,
+ * most recent first. Undated ones go last in their group; ties keep position order.
+ */
+export function sortConcerts<T extends { position: number; status: ConcertStatusKey; eventDate: string | null }>(
+  list: readonly T[],
+): T[] {
+  return [...list].sort((a, b) => {
+    if (a.status !== b.status) return a.status === "going" ? -1 : 1;
+    if (a.eventDate !== b.eventDate) {
+      if (a.eventDate === null) return 1;
+      if (b.eventDate === null) return -1;
+      const cmp = a.eventDate < b.eventDate ? -1 : 1;
+      return a.status === "going" ? cmp : -cmp;
+    }
+    return a.position - b.position;
+  });
+}
+
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+/**
+ * "2026-03-14" as "Mar 14, 2026". Done by hand rather than with toLocaleDateString, which
+ * would treat the date as midnight UTC (showing the day before in New York) and could
+ * format differently on the server and in the browser.
+ */
+export function formatConcertDate(isoDate: string): string {
+  const m = isoDate.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m) return isoDate;
+  return `${MONTHS[Number(m[2]) - 1]} ${Number(m[3])}, ${m[1]}`;
 }

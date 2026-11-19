@@ -2,6 +2,9 @@
 -- supabase/migrations. Every step says what it expects; the whole thing runs in one
 -- transaction and rolls back, so it leaves no data behind.
 --
+-- If you ever see "current transaction is aborted" in the output, a setup statement failed
+-- and every step after it is meaningless: fix that first.
+--
 -- Run against the local database:
 --   docker exec -i supabase_db_TunedIn_App psql -U postgres -q < supabase/tests/security_rules.sql
 
@@ -29,7 +32,7 @@ reset role;
 insert into public.profiles (id, handle, university_id, school_id) values
  ('00000000-0000-0000-0000-00000000000b','bob', gen_random_uuid(), current_setting('t.school')::uuid),
  ('00000000-0000-0000-0000-00000000000c','cara', gen_random_uuid(), current_setting('t.school')::uuid);
-insert into public.tracks (id,title,artist) values ('00000000-0000-0000-0000-0000000000aa','Espresso','Sabrina Carpenter');
+insert into public.tracks (id,title,artist) values ('00000000-0000-0000-0000-0000000000aa','Security Test Song','Security Test Artist');  -- made-up names, so this never collides with real songs in the database
 insert into public.presence (user_id, geo_cell, track_id) values
  ('00000000-0000-0000-0000-00000000000b','dr5rs0','00000000-0000-0000-0000-0000000000aa'),
  ('00000000-0000-0000-0000-00000000000c','dr5rs1','00000000-0000-0000-0000-0000000000aa');
@@ -172,4 +175,66 @@ savepoint s; select count(*) from public.profile_favorites; rollback to s;
 savepoint s; select count(*) from public.profile_links; rollback to s;
 savepoint s; select * from public.profile_top_tracks('00000000-0000-0000-0000-00000000000b'); rollback to s;
 savepoint s; select * from public.profile_top_artists('00000000-0000-0000-0000-00000000000b'); rollback to s;
+-- ---------------------------------------------------------------------------
+-- Connection fields, concerts and taste match (20261119160000_profile_connection.sql)
+-- ---------------------------------------------------------------------------
+reset role;
+update public.user_settings set ghost_mode = false where user_id in ('00000000-0000-0000-0000-00000000000a', '00000000-0000-0000-0000-00000000000b');
+update public.profiles set show_stats = true where id in ('00000000-0000-0000-0000-00000000000a', '00000000-0000-0000-0000-00000000000b');
+-- A and B both play artists X1 and X2; A also plays X3, B also plays X4. C plays nothing.
+insert into public.tracks (id, title, artist) values
+  ('00000000-0000-0000-0000-0000000000c1','Security Test t1','Sec Test X1'), ('00000000-0000-0000-0000-0000000000c2','Security Test t2','Sec Test X2'),
+  ('00000000-0000-0000-0000-0000000000c3','Security Test t3','Sec Test X3'), ('00000000-0000-0000-0000-0000000000c4','Security Test t4','Sec Test X4');
+insert into public.plays (user_id, track_id, played_at, source) values
+  ('00000000-0000-0000-0000-00000000000a','00000000-0000-0000-0000-0000000000c1', now() - interval '1 hour','checkin'),
+  ('00000000-0000-0000-0000-00000000000a','00000000-0000-0000-0000-0000000000c2', now() - interval '2 hour','checkin'),
+  ('00000000-0000-0000-0000-00000000000a','00000000-0000-0000-0000-0000000000c3', now() - interval '3 hour','checkin'),
+  ('00000000-0000-0000-0000-00000000000b','00000000-0000-0000-0000-0000000000c1', now() - interval '1 hour','checkin'),
+  ('00000000-0000-0000-0000-00000000000b','00000000-0000-0000-0000-0000000000c2', now() - interval '2 hour','checkin'),
+  ('00000000-0000-0000-0000-00000000000b','00000000-0000-0000-0000-0000000000c4', now() - interval '3 hour','checkin');
+
+set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-0000-0000-00000000000a","role":"authenticated"}', true);
+\echo '== 32 A edits own profile: genre not on the list (ERROR), 4 genres (ERROR), prompt answer without a prompt (ERROR), instagram with a slash (ERROR), unknown badge (ERROR)'
+savepoint s; update public.profiles set genres = array['pop','made-up-genre'] where id = '00000000-0000-0000-0000-00000000000a'; rollback to s;
+savepoint s; update public.profiles set genres = array['pop','rock','jazz','soul'] where id = '00000000-0000-0000-0000-00000000000a'; rollback to s;
+savepoint s; update public.profiles set prompt_answer = 'orphan answer' where id = '00000000-0000-0000-0000-00000000000a'; rollback to s;
+savepoint s; update public.profiles set instagram = 'evil.example/x' where id = '00000000-0000-0000-0000-00000000000a'; rollback to s;
+savepoint s; update public.profiles set student_status = 'professor' where id = '00000000-0000-0000-0000-00000000000a'; rollback to s;
+\echo '== 33 A saves valid connection fields (expect 1)'
+with u as (update public.profiles set pronouns = 'she/her', major = 'Music Tech', hometown = 'Queens', instagram = 'a.listener_1',
+  student_status = 'transfer', prompt_key = 'ask_me', prompt_answer = 'my vinyl haul', genres = array['pop','jazz'],
+  open_to = array['concert_buddies'], music_roles = array['bass'], music_note = 'looking for a drummer'
+  where id = '00000000-0000-0000-0000-00000000000a' returning 1) select count(*) as saved from u;
+\echo '== 34 concerts: A adds own (1), adds one for B (ERROR), bad status (ERROR), 7th position (ERROR); B reads A concert (1), B deletes it (0)'
+with i as (insert into public.profile_concerts (user_id, position, status, artist) values ('00000000-0000-0000-0000-00000000000a', 1, 'going', 'X1') returning 1) select count(*) as added from i;
+savepoint s; insert into public.profile_concerts (user_id, position, status, artist) values ('00000000-0000-0000-0000-00000000000b', 1, 'going', 'X1'); rollback to s;
+savepoint s; insert into public.profile_concerts (user_id, position, status, artist) values ('00000000-0000-0000-0000-00000000000a', 2, 'maybe', 'X1'); rollback to s;
+savepoint s; insert into public.profile_concerts (user_id, position, status, artist) values ('00000000-0000-0000-0000-00000000000a', 7, 'went', 'X1'); rollback to s;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-0000-0000-00000000000b","role":"authenticated"}', true);
+select count(*) as b_reads_a_concert from public.profile_concerts where user_id = '00000000-0000-0000-0000-00000000000a';
+with d as (delete from public.profile_concerts where user_id = '00000000-0000-0000-0000-00000000000a' returning 1) select count(*) as b_deleted from d;
+
+\echo '== 35 taste match, B looking at A: expect a score between 1 and 99 with shared artists Sec Test X1 and X2 (2 shared)'
+select score between 1 and 99 as plausible_score, shared_artists, shared_count from public.taste_match('00000000-0000-0000-0000-00000000000a');
+\echo '== 36 taste match with yourself (0 rows) and with C, who has no plays (0 rows)'
+select count(*) as self_rows from public.taste_match('00000000-0000-0000-0000-00000000000b');
+select count(*) as no_data_rows from public.taste_match('00000000-0000-0000-0000-00000000000c');
+reset role;
+update public.profiles set show_stats = false where id = '00000000-0000-0000-0000-00000000000a';
+set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-0000-0000-00000000000b","role":"authenticated"}', true);
+\echo '== 37 A hides stats: B gets no taste match (0 rows), so a match never leaks hidden listening'
+select count(*) as rows_when_hidden from public.taste_match('00000000-0000-0000-0000-00000000000a');
+reset role;
+update public.profiles set show_stats = true where id = '00000000-0000-0000-0000-00000000000a';
+update public.user_settings set ghost_mode = true where user_id = '00000000-0000-0000-0000-00000000000a';
+set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-0000-0000-00000000000b","role":"authenticated"}', true);
+\echo '== 38 A in ghost mode: B gets no taste match (0 rows)'
+select count(*) as rows_when_ghost from public.taste_match('00000000-0000-0000-0000-00000000000a');
+set local role anon;
+\echo '== 39 anon: profile_concerts (ERROR), taste_match (ERROR)'
+savepoint s; select count(*) from public.profile_concerts; rollback to s;
+savepoint s; select * from public.taste_match('00000000-0000-0000-0000-00000000000a'); rollback to s;
 rollback;
