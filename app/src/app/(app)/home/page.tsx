@@ -3,6 +3,7 @@ import { requireProfile } from "@/lib/auth";
 import { getChartStatus, getTopTracks } from "@/lib/charts";
 import { LIVE_MINUTES, getFriendsToday, getPendingRequestCount, timeAgo } from "@/lib/friends";
 import { getNearbyAreas } from "@/lib/nearby";
+import { appleMusicEnabled } from "@/lib/sources/apple-music-token";
 import { createClient } from "@/lib/supabase/server";
 import AutopilotSync from "@/components/autopilot-sync";
 import Avatar from "@/components/avatar";
@@ -39,7 +40,7 @@ export default async function HomePage() {
       .eq("user_id", profile.id)
       .gt("expires_at", new Date().toISOString())
       .maybeSingle(),
-    supabase.from("user_settings").select("lastfm_username, share_location, ghost_mode").eq("user_id", profile.id).maybeSingle(),
+    supabase.from("user_settings").select("lastfm_username, apple_music_connected_at, share_location, ghost_mode").eq("user_id", profile.id).maybeSingle(),
     getFriendsToday(supabase, profile.id),
     getPendingRequestCount(supabase),
     supabase.rpc("people_you_might_click_with", { p_limit: 8 }),
@@ -50,7 +51,8 @@ export default async function HomePage() {
 
   const presence = presenceRes.data as unknown as { updated_at: string; track: TrackJoin | null } | null;
   const live = presence && Date.now() - new Date(presence.updated_at).getTime() < LIVE_MINUTES * 60_000;
-  const connected = Boolean(settingsRes.data?.lastfm_username);
+  const onAppleMusic = Boolean(settingsRes.data?.apple_music_connected_at);
+  const connected = onAppleMusic || Boolean(settingsRes.data?.lastfm_username);
   const hasFriends = friends.onNow.length + friends.earlier.length + friends.quiet.length > 0;
   const people = (suggestedRes.data ?? []) as Suggestion[];
   const sharingLocation = Boolean(settingsRes.data?.share_location) && !settingsRes.data?.ghost_mode;
@@ -94,7 +96,9 @@ export default async function HomePage() {
               <>
                 <p className="font-semibold">Nothing playing yet today</p>
                 <p className="text-sm opacity-70">
-                  {connected ? "Play something on Spotify and it shows up here." : "Connect your music to fill this in."}
+                  {connected
+                    ? `Play something on ${onAppleMusic ? "Apple Music" : "Spotify"} and it shows up here.`
+                    : "Connect your music to fill this in."}
                 </p>
               </>
             )}
@@ -109,7 +113,7 @@ export default async function HomePage() {
         <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm">
           {!connected && (
             <Link href="/connect" className="font-semibold underline">
-              Connect Spotify through Last.fm
+              {appleMusicEnabled() ? "Connect Spotify or Apple Music" : "Connect Spotify through Last.fm"}
             </Link>
           )}
           <Link href="/checkin" className="underline opacity-70">

@@ -133,8 +133,7 @@ export default function ConnectSteps({
           information&quot; is off. Settings in TunedIn shows whether your plays are coming through.
         </p>
         <p className="text-xs opacity-60">
-          On Apple Music or another service? Last.fm lists apps that connect them under &quot;Track My
-          Music&quot;.
+          On another service? Last.fm lists apps that connect them under &quot;Track My Music&quot;.
         </p>
       </Step>
     </ol>

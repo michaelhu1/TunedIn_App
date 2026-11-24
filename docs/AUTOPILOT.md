@@ -1,13 +1,17 @@
 # Autopilot: plays from streaming services
 
 TunedIn is a social layer on top of the music people already stream. It does not play
-music. Plays reach it in two ways:
+music. Plays reach it in three ways:
 
 1. **Automatically, through Last.fm.** A person links Spotify (or another player) to a free
    Last.fm account once. Last.fm then records everything they play, and TunedIn reads that
    public history. This is the path that works for a whole campus, because Spotify's own API
    limits new apps to 25 users.
-2. **By hand.** Tapping a song in the app ("check-in"). The fallback for people with nothing
+2. **Automatically, from Apple Music.** A person presses Connect Apple Music and approves in
+   Apple's window. TunedIn then reads their recently played songs from Apple directly. Setup
+   and limits are in [APPLE_MUSIC.md](APPLE_MUSIC.md). The two triggers below read both
+   sources; their addresses still say "lastfm" so the existing schedule keeps working.
+3. **By hand.** Tapping a song in the app ("check-in"). The fallback for people with nothing
    connected.
 
 ## How the reader works
