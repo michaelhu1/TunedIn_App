@@ -14,7 +14,7 @@ It is an installable web app (PWA), so it runs on any phone from a link with no 
 
 | | |
 |---|---|
-| **Your music, automatically** | Link Spotify to a free Last.fm account once and every play arrives by itself. TunedIn does not play music; it is a social layer on what you already stream. Songs can also be set by hand. |
+| **Your music, automatically** | Link Spotify to a free Last.fm account once, or connect Apple Music with one button, and every play arrives by itself. TunedIn does not play music; it is a social layer on what you already stream. Songs can also be set by hand. |
 | **Friends feed** | Home shows what each friend is playing today, with a green dot for listening now, 30-second previews and one tap to open the song in Spotify. |
 | **Two maps** | *Friends*: each friend in a zone about 1 km wide, never an exact spot. *Public*: busy areas such as "12 listening around Washington Square" and the songs playing there, with nobody identified. |
 | **Charts** | Top songs and artists for NYU, each school and your friends, plus a school-vs-school leaderboard. A public version at `/nyu` works without an account. |
@@ -48,7 +48,7 @@ covered by tests that act as different users and try to break them.
 
 **Sources are swappable.** Listening data and song metadata sit behind
 [two small interfaces](app/src/lib/sources/types.ts). Spotify's API caps new apps at 25 users,
-so listening comes from manual check-in and Last.fm today; adding another source is one adapter.
+so listening comes from manual check-in, Last.fm and Apple Music ([setup](docs/APPLE_MUSIC.md)); adding another source is one adapter.
 
 The full reasoning, alternatives considered, and build order are in
 [docs/PROPOSAL.md](docs/PROPOSAL.md).
@@ -80,7 +80,7 @@ in the proposal.
 ```
 app/                  the Next.js app
   src/app/            screens (home, map, charts, friends, me) and API routes
-  src/lib/sources/    Last.fm, Deezer, iTunes, Spotify adapters behind shared interfaces
+  src/lib/sources/    Last.fm, Apple Music, Deezer, iTunes, Spotify adapters behind shared interfaces
   src/lib/geo/        location rounding
 supabase/
   migrations/         schema, security policies, chart functions (commented for reading)
@@ -106,7 +106,7 @@ http://127.0.0.1:54324 and no real email is sent. `npm test` runs the unit tests
 ## Status
 
 Live at [tuned-in-app.vercel.app](https://tuned-in-app.vercel.app). Working: everything in the table above.
-Next: testing with a first group of NYU students, a review screen for reports, and Apple Music.
+Next: testing with a first group of NYU students, a review screen for reports, and a native app.
 
 How plays are read from streaming services, and the scheduled job behind it, is described in
 [docs/AUTOPILOT.md](docs/AUTOPILOT.md).
@@ -114,7 +114,7 @@ How plays are read from streaming services, and the scheduled job behind it, is 
 ## Credits
 
 Song details and previews from [Deezer](https://developers.deezer.com). Automatic listening data
-from [Last.fm](https://www.last.fm). Map data © [OpenStreetMap](https://www.openstreetmap.org/copyright)
+from [Last.fm](https://www.last.fm) and Apple Music. Map data © [OpenStreetMap](https://www.openstreetmap.org/copyright)
 contributors, tiles by [OpenFreeMap](https://openfreemap.org). TunedIn is not affiliated with
 NYU, Spotify, Deezer, Apple or Last.fm.
 

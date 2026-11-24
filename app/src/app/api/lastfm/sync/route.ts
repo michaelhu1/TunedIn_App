@@ -1,14 +1,17 @@
 import { NextResponse } from "next/server";
 import { getSessionUser, jsonError } from "@/lib/api";
+import { syncAppleMusicUser } from "@/lib/apple-music-sync";
 import { isStale, syncLastfmUser } from "@/lib/lastfm-sync";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 const MAX_FRIENDS_PER_CALL = 5;
 
 // POST /api/lastfm/sync
-// Called quietly when someone opens the app. It refreshes THEIR plays from Last.fm, and
-// then a few friends whose data has gone stale, so the map and friends list are fresh for
-// the person looking at them even between scheduled runs.
+// Called quietly when someone opens the app. It refreshes THEIR plays from whichever
+// service they connected (Last.fm or Apple Music), and then a few friends whose data has
+// gone stale, so the map and friends list are fresh for the person looking at them even
+// between scheduled runs. The address says "lastfm" because that was the only source when
+// it was written; it is kept so nothing that calls it has to change.
 export async function POST() {
   const session = await getSessionUser();
   if (!session) return jsonError(401, "Sign in first.");
@@ -23,13 +26,15 @@ export async function POST() {
 
   const { data: mine } = await admin
     .from("user_settings")
-    .select("lastfm_username, lastfm_cursor, lastfm_synced_at")
+    .select("lastfm_username, lastfm_cursor, lastfm_synced_at, apple_music_connected_at, apple_music_synced_at")
     .eq("user_id", session.userId)
     .maybeSingle();
 
   let me = null;
   if (mine?.lastfm_username && isStale(mine.lastfm_synced_at)) {
     me = await syncLastfmUser(admin, { userId: session.userId, username: mine.lastfm_username, cursor: mine.lastfm_cursor });
+  } else if (mine?.apple_music_connected_at && isStale(mine.apple_music_synced_at)) {
+    me = await syncAppleMusicUser(admin, { userId: session.userId, syncedAt: mine.apple_music_synced_at });
   }
 
   // Friends, read as the signed-in user so row-level security decides who counts as a friend.
@@ -49,6 +54,24 @@ export async function POST() {
       if (!isStale(f.lastfm_synced_at)) continue;
       await syncLastfmUser(admin, { userId: f.user_id, username: f.lastfm_username, cursor: f.lastfm_cursor });
       friendsSynced++;
+    }
+
+    // The same for friends on Apple Music, within the same overall limit.
+    if (friendsSynced < MAX_FRIENDS_PER_CALL) {
+      const { data: staleApple } = await admin
+        .from("user_settings")
+        .select("user_id, apple_music_synced_at")
+        .in("user_id", friendIds)
+        .not("apple_music_connected_at", "is", null)
+        .neq("apple_music_status", "expired")
+        .eq("ghost_mode", false)
+        .order("apple_music_synced_at", { ascending: true, nullsFirst: true })
+        .limit(MAX_FRIENDS_PER_CALL - friendsSynced);
+      for (const f of staleApple ?? []) {
+        if (!isStale(f.apple_music_synced_at)) continue;
+        await syncAppleMusicUser(admin, { userId: f.user_id, syncedAt: f.apple_music_synced_at });
+        friendsSynced++;
+      }
     }
   }
 

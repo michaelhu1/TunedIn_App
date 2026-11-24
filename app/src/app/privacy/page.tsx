@@ -33,7 +33,7 @@ export default function PrivacyPage() {
           playlist links and Instagram handle.
         </Item>
         <Item name="What you listen to">
-          Plays read from your public Last.fm profile if you connect one, and songs you set by hand. Playing a
+          Plays read from your public Last.fm profile or from Apple Music if you connect one, and songs you set by hand. Playing a
           30-second preview inside TunedIn is not recorded.
         </Item>
         <Item name="Your friends">Who you are friends with, pending requests, anyone you have blocked, and each “felt this” you send a friend about their song.</Item>
@@ -77,7 +77,9 @@ export default function PrivacyPage() {
         <p>
           Your data is stored with Supabase (database, sign-in and photos) and the app is hosted on Vercel.
           Sign-in codes are sent by email. To show music we ask Last.fm for the public listening history of the
-          username you give us, and Deezer, Apple&apos;s iTunes search and Spotify for song details, artwork and
+          username you give us, or, if you connect Apple Music, we ask Apple for your recently played songs
+          using a permission you grant in Apple&apos;s own window and can withdraw by disconnecting in Settings.
+          We also ask Deezer, Apple&apos;s iTunes search and Spotify for song details, artwork and
           links; those requests contain song names, not who you are. When you add a playlist link, we ask that service (Spotify, YouTube and the like) for the playlist&apos;s cover picture, which tells it the playlist&apos;s address but not whose profile it is on. Map images load directly from
           OpenFreeMap, which, like any website, sees your device&apos;s internet address when it does.
         </p>

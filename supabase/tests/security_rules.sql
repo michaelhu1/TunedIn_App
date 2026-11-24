@@ -593,4 +593,34 @@ savepoint s; update public.profile_links set title = 'songs for faggots' where u
 with u as (update public.profiles set bio = 'this album is fucking great, my nigga' where id = '00000000-0000-0000-0000-00000000000b' returning 1) select count(*) as saved from u;
 with u as (update public.profiles set hometown = 'Niamey, Niger', bio = 'born in Scunthorpe' where id = '00000000-0000-0000-0000-00000000000b' returning 1) select count(*) as saved from u;
 reset role;
+-- ---------------------------------------------------------------------------
+-- Apple Music (20261124230000_apple_music.sql)
+-- ---------------------------------------------------------------------------
+reset role;
+insert into public.apple_music_links (user_id, music_user_token, recent_ids) values ('00000000-0000-0000-0000-00000000000b', 'secret-token', array['1','2']);
+update public.user_settings set lastfm_username = null, apple_music_connected_at = now(), apple_music_synced_at = now(), apple_music_status = 'ok' where user_id = '00000000-0000-0000-0000-00000000000b';
+set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-0000-0000-00000000000b","role":"authenticated"}', true);
+\echo '== 98 B cannot read their own Apple Music token, nor write one (ERROR x2), but can see they are connected (t)'
+savepoint s; select music_user_token from public.apple_music_links; rollback to s;
+savepoint s; insert into public.apple_music_links (user_id, music_user_token) values ('00000000-0000-0000-0000-00000000000b', 'forged'); rollback to s;
+select apple_music_connected_at is not null and apple_music_status = 'ok' as connected from public.user_settings where user_id = '00000000-0000-0000-0000-00000000000b';
+\echo '== 99 B cannot fake the Apple Music reader: mark themselves connected (ERROR), write the status (ERROR)'
+savepoint s; update public.user_settings set apple_music_connected_at = now() where user_id = '00000000-0000-0000-0000-00000000000b'; rollback to s;
+savepoint s; update public.user_settings set apple_music_status = 'ok' where user_id = '00000000-0000-0000-0000-00000000000b'; rollback to s;
+set local role anon;
+\echo '== 100 anon cannot read Apple Music tokens (ERROR)'
+savepoint s; select * from public.apple_music_links; rollback to s;
+set local role authenticated;
+select set_config('request.jwt.claims','{"sub":"00000000-0000-0000-0000-00000000000b","role":"authenticated"}', true);
+\echo '== 101 B connects Last.fm: Apple Music is disconnected and its token deleted (expect t, 0)'
+update public.user_settings set lastfm_username = 'bob_fm' where user_id = '00000000-0000-0000-0000-00000000000b';
+reset role;
+select apple_music_connected_at is null and apple_music_status is null and apple_music_synced_at is null as disconnected from public.user_settings where user_id = '00000000-0000-0000-0000-00000000000b';
+select count(*) as tokens_left from public.apple_music_links where user_id = '00000000-0000-0000-0000-00000000000b';
+\echo '== 102 Apple Music plays are accepted (1); "automatic" and the streaming totals now cover every streaming source (t)'
+insert into public.plays (user_id, track_id, played_at, source) values ('00000000-0000-0000-0000-00000000000b', '00000000-0000-0000-0000-0000000000aa', now() - interval '1 second', 'apple_music');
+select count(*) as apple_plays from public.plays where source = 'apple_music';
+select position('source <> ''checkin''' in pg_get_functiondef('public.chart_top_listeners(text,int,int)'::regprocedure)) > 0
+   and position('apple_music_connected_at' in pg_get_functiondef('public.admin_stats()'::regprocedure)) > 0 as patched;
 rollback;
